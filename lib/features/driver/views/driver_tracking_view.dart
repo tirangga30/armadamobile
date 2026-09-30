@@ -1,0 +1,315 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../../core/config/theme.dart';
+import '../../../providers/driver_tracking_provider.dart';
+
+class DriverTrackingView extends StatelessWidget {
+  const DriverTrackingView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final tracking = context.watch<DriverTrackingProvider>();
+    final pos = tracking.currentPosition;
+
+    final lat = pos?.latitude ?? -6.2088;
+    final lng = pos?.longitude ?? 106.8456;
+    final accuracy = pos?.accuracy ?? 5.0;
+    final speed = (pos?.speed ?? 0.0) * 3.6; // m/s to km/h
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: Text(
+          'Pelacak GPS & Telemetri',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          // GPS Status Header Card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: tracking.isTracking
+                  ? const LinearGradient(
+                      colors: [Color(0xFF065F46), Color(0xFF047857)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : const LinearGradient(
+                      colors: [Color(0xFF334155), Color(0xFF1E293B)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: tracking.isTracking ? AppTheme.statusSuccess : Colors.grey,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            tracking.isTracking ? 'TRANSMISI AKTIF' : 'TRANSMISI NONAKTIF',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      'Tersinkron: #${tracking.syncCount}',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  tracking.trackingStatusText,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  tracking.lastSyncTime != null
+                      ? 'Waktu update: ${tracking.lastSyncTime!.toIso8601String().substring(11, 19)} UTC'
+                      : 'Menunggu koneksi GPS pertama...',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Coordinates Grid
+          Text(
+            'Telemetri Lokasi Fisik Device',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildTelemetryBox(
+                  title: 'Latitude',
+                  val: lat.toStringAsFixed(6),
+                  icon: Icons.explore_outlined,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTelemetryBox(
+                  title: 'Longitude',
+                  val: lng.toStringAsFixed(6),
+                  icon: Icons.explore_rounded,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTelemetryBox(
+                  title: 'Akurasi GPS',
+                  val: '±${accuracy.toStringAsFixed(1)} meter',
+                  icon: Icons.gps_fixed_rounded,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTelemetryBox(
+                  title: 'Kecepatan',
+                  val: '${speed.toStringAsFixed(1)} km/h',
+                  icon: Icons.speed_rounded,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // API Contract Information Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Kontrak Backend Sesuai PRD/Section 27:',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: const Color(0xFF475569),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'POST /v1/me/location\n{\n  "latitude": $lat,\n  "longitude": $lng,\n  "accuracyM": $accuracy,\n  "speedMps": ${pos?.speed ?? 0.0}\n}',
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      color: Color(0xFF38BDF8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Action Buttons
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                if (tracking.isTracking) {
+                  tracking.stopTracking();
+                } else {
+                  tracking.startTracking();
+                }
+              },
+              icon: Icon(
+                tracking.isTracking ? Icons.pause_circle_outline : Icons.play_circle_outline,
+                size: 22,
+              ),
+              label: Text(
+                tracking.isTracking ? 'Jeda Sinkronisasi GPS' : 'Mulai Sinkronisasi GPS Otomatis',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: tracking.isTracking ? AppTheme.statusWarning : AppTheme.statusSuccess,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () => tracking.pingNow(),
+              icon: const Icon(Icons.send_rounded, size: 18),
+              label: Text(
+                'Kirim Ping Lokasi Seketika (Manual)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTelemetryBox({
+    required String title,
+    required String val,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+              Icon(icon, size: 16, color: AppTheme.primaryBlue),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            val,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
