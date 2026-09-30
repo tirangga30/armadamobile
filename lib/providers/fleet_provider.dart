@@ -65,9 +65,9 @@ class FleetProvider extends ChangeNotifier {
   }
 
   /// Resolve an emergency alert
-  Future<bool> resolveEmergency(String id, {String? note}) async {
+  Future<bool> resolveEmergency(String id) async {
     try {
-      await _apiService.updateEmergencyStatus(id, 'RESOLVED', note: note ?? 'Ditangani oleh Owner via Armada Mobile');
+      await _apiService.updateEmergencyStatus(id, 'RESOLVED');
       // Update local item
       final index = _emergencies.indexWhere((e) => e.id == id);
       if (index != -1) {

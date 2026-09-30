@@ -138,9 +138,9 @@ class DriverProfileView extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Technical Connection Section
+          // Vehicle & Performance Section
           Text(
-            'Layanan GPS & Backend',
+            'Kendaraan & Kualifikasi Pengemudi',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -150,43 +150,20 @@ class DriverProfileView extends StatelessWidget {
           const SizedBox(height: 10),
 
           Container(
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Status Transmisi GPS:',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                    Text(
-                      tracking.isTracking ? 'AKTIF BERJALAN' : 'DIHENTIKAN',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: tracking.isTracking ? AppTheme.statusSuccess : const Color(0xFFF59E0B),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Target API: ${AppConfig.apiBaseUrl}/me/location',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    color: const Color(0xFF94A3B8),
-                  ),
-                ),
+                _buildInfoTile('Kendaraan Ditugaskan', 'Gran Max Blind Van (B 9281 SXZ)'),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                _buildInfoTile('Lisensi Mengemudi', 'SIM B1 Umum (Aktif)'),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                _buildInfoTile('Rating Driver', '⭐ 4.9 / 5.0 (Sangat Baik)'),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                _buildInfoTile('Status Pelacak GPS', tracking.isTracking ? 'Aktif Terhubung' : 'Jeda Sementara'),
               ],
             ),
           ),

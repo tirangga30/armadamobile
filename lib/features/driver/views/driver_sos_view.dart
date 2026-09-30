@@ -15,12 +15,37 @@ class _DriverSosViewState extends State<DriverSosView> {
   String _selectedType = 'ACCIDENT';
   final _noteController = TextEditingController();
 
-  final List<Map<String, String>> _emergencyTypes = [
-    {'type': 'ACCIDENT', 'label': 'Kecelakaan Lalu Lintas'},
-    {'type': 'VEHICLE_BREAKDOWN', 'label': 'Kendaraan Mogok / Rusak'},
-    {'type': 'MEDICAL', 'label': 'Darurat Medis / Sakit'},
-    {'type': 'SECURITY', 'label': 'Keamanan / Pembegalan'},
-    {'type': 'OTHER', 'label': 'Kendala Darurat Lainnya'},
+  final List<Map<String, dynamic>> _emergencyTypes = [
+    {
+      'type': 'ACCIDENT',
+      'label': 'Kecelakaan Lalu Lintas',
+      'icon': Icons.car_crash_rounded,
+      'desc': 'Tabrakan, benturan, atau insiden fisik di jalan raya'
+    },
+    {
+      'type': 'VEHICLE_BREAKDOWN',
+      'label': 'Kendaraan Rusak / Mogok',
+      'icon': Icons.build_circle_rounded,
+      'desc': 'Masalah mesin, ban pecah, transmisi atau kelistrikan'
+    },
+    {
+      'type': 'MEDICAL',
+      'label': 'Darurat Medis / Sakit',
+      'icon': Icons.medical_services_rounded,
+      'desc': 'Kondisi kesehatan mendesak yang membutuhkan ambulans'
+    },
+    {
+      'type': 'SECURITY',
+      'label': 'Gangguan Keamanan / Begal',
+      'icon': Icons.shield_rounded,
+      'desc': 'Tindak kriminalitas, perampokan, atau ancaman fisik'
+    },
+    {
+      'type': 'OTHER',
+      'label': 'Situasi Darurat Lainnya',
+      'icon': Icons.help_outline_rounded,
+      'desc': 'Hambatan rute ekstrem atau bencana alam lokal'
+    },
   ];
 
   @override
@@ -29,37 +54,55 @@ class _DriverSosViewState extends State<DriverSosView> {
     super.dispose();
   }
 
-  Future<void> _triggerSos(BuildContext context) async {
+  Future<void> _handleTriggerSos(BuildContext context) async {
     final tracking = context.read<DriverTrackingProvider>();
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: AppTheme.statusDanger, size: 28),
-            const SizedBox(width: 10),
-            Text(
-              'Konfirmasi SOS Darurat',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.statusDanger.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.warning_amber_rounded, color: AppTheme.statusDanger, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Konfirmasi SOS Darurat',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
             ),
           ],
         ),
         content: Text(
-          'Sinyal darurat beserta koordinat GPS lokasi Anda saat ini akan segera dikirimkan ke Tim Operasional Owner & Admin Pusat. Lanjutkan?',
-          style: GoogleFonts.plusJakartaSans(fontSize: 13),
+          'Sinyal darurat beserta koordinat lokasi GPS akurat Anda akan langsung dipancarkan ke Dashboard Admin & Owner Pusat secara real-time. Aktifkan sekarang?',
+          style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.4),
         ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.statusDanger,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Kirim Sinyal Darurat!'),
+            child: Text(
+              'Ya, Kirim Sinyal Darurat',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -75,21 +118,78 @@ class _DriverSosViewState extends State<DriverSosView> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            success
-                ? 'Sinyal SOS Berhasil Dikirimkan ke Pusat Armada!'
-                : (tracking.sosStatusMessage ?? 'Gagal mengirim sinyal SOS.'),
+          content: Row(
+            children: [
+              Icon(
+                success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  success
+                      ? 'Sinyal Darurat Berhasil Aktif & Diterima Pusat Komando!'
+                      : (tracking.sosStatusMessage ?? 'Gagal memancarkan sinyal darurat.'),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
           backgroundColor: success ? AppTheme.statusSuccess : AppTheme.statusDanger,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
+    }
+  }
+
+  Future<void> _handleResolveActiveSos(BuildContext context) async {
+    final tracking = context.read<DriverTrackingProvider>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Akhiri Status Darurat?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        content: Text(
+          'Tandai bahwa situasi di lapangan sudah teratasi dan armada kembali dalam kondisi aman.',
+          style: GoogleFonts.plusJakartaSans(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Kembali'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.statusSuccess),
+            child: const Text('Situasi Aman'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final ok = await tracking.resolveActiveEmergency();
+      if (ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Status darurat telah diselesaikan. Armada kembali operasional.'),
+            backgroundColor: AppTheme.statusSuccess,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final tracking = context.watch<DriverTrackingProvider>();
+    final activeEm = tracking.activeEmergency;
+    final hasActiveSos = activeEm != null && activeEm.status == 'TRIGGERED';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -103,28 +203,155 @@ class _DriverSosViewState extends State<DriverSosView> {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
-          // Warning Banner
+          // If active emergency is ongoing
+          if (hasActiveSos) ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF991B1B), Color(0xFFDC2626)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.statusDanger.withOpacity(0.35),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'SINYAL DARURAT AKTIF',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        'ID: ${activeEm.id.substring(0, 8)}...',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Kategori: ${activeEm.emergencyType}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Tim Pusat & Owner telah menerima koordinat Anda dan sedang memantau kondisi armada secara langsung.',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      color: Colors.white.withOpacity(0.9),
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _handleResolveActiveSos(context),
+                      icon: const Icon(Icons.check_circle_rounded, size: 20, color: Color(0xFF991B1B)),
+                      label: Text(
+                        'Tandai Sudah Aman (Batalkan SOS)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: const Color(0xFF991B1B),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Guidance Banner
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEF2F2),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFECACA)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, color: AppTheme.statusDanger, size: 24),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.statusDanger.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.headset_mic_rounded, color: AppTheme.statusDanger, size: 22),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Gunakan fitur ini hanya dalam situasi kritis atau bahaya di perjalanan distribusi.',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      color: const Color(0xFF991B1B),
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pusat Bantuan & Keselamatan Lapangan',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'Tekan tombol darurat hanya saat menghadapi situasi darurat di perjalanan.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -136,7 +363,7 @@ class _DriverSosViewState extends State<DriverSosView> {
           // Big Emergency SOS Button Hero
           Center(
             child: GestureDetector(
-              onTap: tracking.isTriggeringSos ? null : () => _triggerSos(context),
+              onTap: tracking.isTriggeringSos ? null : () => _handleTriggerSos(context),
               child: Container(
                 width: 170,
                 height: 170,
@@ -146,9 +373,9 @@ class _DriverSosViewState extends State<DriverSosView> {
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.statusDanger.withOpacity(0.4),
-                      blurRadius: 30,
+                      blurRadius: 28,
                       spreadRadius: 4,
-                      offset: const Offset(0, 10),
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -160,17 +387,26 @@ class _DriverSosViewState extends State<DriverSosView> {
                           children: [
                             const Icon(
                               Icons.emergency_rounded,
-                              size: 52,
+                              size: 54,
                               color: Colors.white,
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'AKTIFKAN SOS',
+                              'PENCET SOS',
                               style: GoogleFonts.plusJakartaSans(
                                 color: Colors.white,
-                                fontSize: 14,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 1.0,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            Text(
+                              'KIRIM KOORDINAT',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white.withOpacity(0.85),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ],
@@ -182,52 +418,101 @@ class _DriverSosViewState extends State<DriverSosView> {
 
           const SizedBox(height: 30),
 
-          // Emergency Type Selector
+          // Emergency Category Selection Cards
           Text(
-            'Kategori Situasi Darurat',
+            'Pilih Kategori Insiden',
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               color: AppTheme.textPrimary,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedType,
-                isExpanded: true,
-                items: _emergencyTypes.map((t) {
-                  return DropdownMenuItem<String>(
-                    value: t['type'],
-                    child: Text(
-                      t['label']!,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+          ..._emergencyTypes.map((item) {
+            final isSelected = _selectedType == item['type'];
+            return GestureDetector(
+              onTap: () => setState(() => _selectedType = item['type']),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected ? AppTheme.statusDanger : const Color(0xFFE2E8F0),
+                    width: isSelected ? 1.8 : 1,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.statusDanger.withOpacity(0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.statusDanger.withOpacity(0.12)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        item['icon'] as IconData,
+                        color: isSelected ? AppTheme.statusDanger : const Color(0xFF64748B),
+                        size: 22,
                       ),
                     ),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedType = val);
-                },
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['label'] as String,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: isSelected ? AppTheme.statusDanger : AppTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item['desc'] as String,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Radio<String>(
+                      value: item['type'] as String,
+                      groupValue: _selectedType,
+                      activeColor: AppTheme.statusDanger,
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedType = val);
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          }),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Additional Note
+          // Additional Note Input
           Text(
-            'Keterangan Tambahan (Opsional)',
+            'Catatan Tambahan Lapangan (Opsional)',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -239,6 +524,7 @@ class _DriverSosViewState extends State<DriverSosView> {
           TextField(
             controller: _noteController,
             maxLines: 2,
+            style: GoogleFonts.plusJakartaSans(fontSize: 13),
             decoration: InputDecoration(
               hintText: 'Contoh: Ban pecah di km 24 Tol Jagorawi arah Ciawi',
               fillColor: Colors.white,
@@ -249,6 +535,8 @@ class _DriverSosViewState extends State<DriverSosView> {
               ),
             ),
           ),
+
+          const SizedBox(height: 24),
         ],
       ),
     );

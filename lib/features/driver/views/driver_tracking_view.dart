@@ -178,7 +178,7 @@ class DriverTrackingView extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // API Contract Information Card
+          // Satellites & Power Efficiency Card
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -189,29 +189,43 @@ class DriverTrackingView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Kontrak Backend Sesuai PRD/Section 27:',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                    color: const Color(0xFF475569),
-                  ),
+                Row(
+                  children: [
+                    const Icon(Icons.satellite_alt_rounded, color: AppTheme.statusSuccess, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Status Sinyal & Diagnostik Telemetri',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Satelit Navigasi', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B))),
+                    Text('Terkunci (High Accuracy)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.statusSuccess)),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'POST /v1/me/location\n{\n  "latitude": $lat,\n  "longitude": $lng,\n  "accuracyM": $accuracy,\n  "speedMps": ${pos?.speed ?? 0.0}\n}',
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      color: Color(0xFF38BDF8),
-                    ),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Mode Pembaruan', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B))),
+                    Text('Adaptive Interval (15 Detik)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Konsumsi Baterai', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B))),
+                    Text('Optimal & Hemat Daya', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.statusSuccess)),
+                  ],
                 ),
               ],
             ),

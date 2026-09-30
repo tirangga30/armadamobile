@@ -128,9 +128,9 @@ class OwnerProfileView extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Technical Connection Section
+          // Operational Support Section
           Text(
-            'Koneksi API Backend',
+            'Pusat Komando & Dukungan Operasional',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -140,53 +140,20 @@ class OwnerProfileView extends StatelessWidget {
           const SizedBox(height: 10),
 
           Container(
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.statusSuccess,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Target Base URL',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  AppConfig.apiBaseUrl,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: AppTheme.primaryBlue,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Versi Aplikasi: ${AppConfig.appVersion} • Client: ${AppConfig.clientPlatform}',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    color: const Color(0xFF94A3B8),
-                  ),
-                ),
+                _buildInfoTile('Pusat Distribusi', 'Warehouse Hub Cakung & Sudirman HQ'),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                _buildInfoTile('Hotline Darurat 24/7', '(021) 5088-7200'),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                _buildInfoTile('Sinkronisasi Web Portal', 'Terhubung ke Armada Admin Portal'),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                _buildInfoTile('Keamanan Akses', 'Enkripsi JWT Session Aktif'),
               ],
             ),
           ),

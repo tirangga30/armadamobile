@@ -275,11 +275,11 @@ class OwnerDashboardView extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Data Backend Aktual',
+                  'Sinkronisasi Live',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
+                    color: AppTheme.statusSuccess,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],

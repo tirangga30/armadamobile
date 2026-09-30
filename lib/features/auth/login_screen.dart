@@ -418,35 +418,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 22),
 
-                // API Status Indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF334155)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.statusSuccess,
-                          shape: BoxShape.circle,
-                        ),
+                // Production Security Badge
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.lock_rounded,
+                      size: 13,
+                      color: Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Sistem Distribusi Terenkripsi • Armada Mobile',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Backend: armada-api.prizftm.my.id/v1',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),

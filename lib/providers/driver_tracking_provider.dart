@@ -151,7 +151,21 @@ class DriverTrackingProvider extends ChangeNotifier {
     }
   }
 
-  /// Trigger emergency SOS alert
+  EmergencyModel? _activeEmergency;
+
+  EmergencyModel? get activeEmergency => _activeEmergency;
+
+  /// Check if the driver currently has an active emergency alert in the backend
+  Future<void> checkActiveEmergency() async {
+    try {
+      _activeEmergency = await _apiService.getActiveDriverEmergency();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Check active emergency notice: $e');
+    }
+  }
+
+  /// Trigger emergency SOS alert directly to POST /v1/me/emergencies
   Future<bool> triggerEmergencyAlert({
     required String emergencyType,
     String? note,
@@ -165,14 +179,15 @@ class DriverTrackingProvider extends ChangeNotifier {
       final lat = pos?.latitude ?? -6.2088;
       final lng = pos?.longitude ?? 106.8456;
 
-      await _apiService.triggerEmergency(
+      final em = await _apiService.triggerEmergency(
         latitude: lat,
         longitude: lng,
         emergencyType: emergencyType,
         note: note ?? 'Sinyal Darurat SOS diaktifkan oleh Driver melalui Armada Mobile.',
       );
 
-      _sosStatusMessage = 'Sinyal Darurat SOS Terkirim ke Pusat Armada!';
+      _activeEmergency = em;
+      _sosStatusMessage = 'Sinyal Darurat SOS Berhasil Dikirimkan ke Pusat Armada!';
       _isTriggeringSos = false;
       notifyListeners();
       return true;
@@ -180,6 +195,20 @@ class DriverTrackingProvider extends ChangeNotifier {
       _sosStatusMessage = 'Gagal mengirim sinyal SOS: $e';
       _isTriggeringSos = false;
       notifyListeners();
+      return false;
+    }
+  }
+
+  /// Resolve or cancel active emergency from driver side
+  Future<bool> resolveActiveEmergency() async {
+    if (_activeEmergency == null) return false;
+    try {
+      await _apiService.updateEmergencyStatus(_activeEmergency!.id, 'RESOLVED');
+      _activeEmergency = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error clearing active emergency: $e');
       return false;
     }
   }

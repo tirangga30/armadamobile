@@ -92,6 +92,7 @@ class ArmadaApiService {
   /*                                EMERGENCIES                                 */
   /* -------------------------------------------------------------------------- */
 
+  /// Owner/Admin: List all emergencies across the fleet
   Future<List<EmergencyModel>> getEmergencies() async {
     final res = await _client.get('emergencies');
     final data = res['data'];
@@ -103,16 +104,31 @@ class ArmadaApiService {
     return [];
   }
 
-  Future<void> updateEmergencyStatus(String id, String status, {String? note}) async {
+  /// Driver: Get currently active emergency if any
+  Future<EmergencyModel?> getActiveDriverEmergency() async {
+    try {
+      final res = await _client.get('me/emergencies/active');
+      final data = res['data'];
+      if (data != null && data is Map<String, dynamic> && data['id'] != null) {
+        return EmergencyModel.fromJson(data);
+      }
+    } catch (e) {
+      debugPrint('No active emergency found or error: $e');
+    }
+    return null;
+  }
+
+  /// Owner/Admin: Update emergency status (ACKNOWLEDGED | RESOLVED | FALSE_ALARM)
+  Future<void> updateEmergencyStatus(String id, String status) async {
     await _client.patch(
       'emergencies/$id/status',
       data: {
         'status': status,
-        if (note != null) 'note': note,
       },
     );
   }
 
+  /// Driver: Trigger real SOS emergency alert to backend (POST /v1/me/emergencies)
   Future<EmergencyModel> triggerEmergency({
     required double latitude,
     required double longitude,
@@ -120,17 +136,21 @@ class ArmadaApiService {
     String? note,
     String? deliveryId,
   }) async {
-    final res = await _client.post(
-      'emergencies',
-      data: {
-        'latitude': latitude.toString(),
-        'longitude': longitude.toString(),
-        'emergencyType': emergencyType,
-        if (note != null) 'note': note,
-        if (deliveryId != null) 'deliveryId': deliveryId,
-      },
-    );
+    final Map<String, dynamic> payload = {
+      'latitude': latitude,
+      'longitude': longitude,
+      'emergencyType': emergencyType,
+    };
 
+    if (note != null && note.trim().isNotEmpty) {
+      payload['note'] = note.trim();
+    }
+
+    if (deliveryId != null && deliveryId.trim().isNotEmpty) {
+      payload['deliveryId'] = deliveryId.trim();
+    }
+
+    final res = await _client.post('me/emergencies', data: payload);
     final data = res['data'];
     return EmergencyModel.fromJson(data ?? {});
   }

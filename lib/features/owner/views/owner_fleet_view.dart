@@ -361,8 +361,8 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
               ),
               Text(
                 driver.location != null
-                    ? 'Lat: ${driver.location!.latitude.toStringAsFixed(4)}, Lng: ${driver.location!.longitude.toStringAsFixed(4)}'
-                    : 'GPS Terhubung via Pusat',
+                    ? 'Koordinat: ${driver.location!.latitude.toStringAsFixed(4)}, ${driver.location!.longitude.toStringAsFixed(4)}'
+                    : 'Lokasi: Standby di Hub Cakung',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   color: AppTheme.primaryBlue,

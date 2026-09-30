@@ -32,6 +32,7 @@ class _DriverShellState extends State<DriverShell> {
       final user = context.read<AuthProvider>().user;
       final driverProvider = context.read<DriverTrackingProvider>();
       driverProvider.loadDriverDeliveries(driverId: user?.effectiveDriverId);
+      driverProvider.checkActiveEmergency();
       // Auto-start GPS tracking on driver login as recommended in PRD
       driverProvider.startTracking();
     });
