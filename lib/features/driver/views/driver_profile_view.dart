@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/config/theme.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/driver_tracking_provider.dart';
@@ -43,7 +42,7 @@ class DriverProfileView extends StatelessWidget {
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(
-                    color: AppTheme.statusSuccess.withOpacity(0.12),
+                    color: AppTheme.statusSuccess.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -78,7 +77,7 @@ class DriverProfileView extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppTheme.statusSuccess.withOpacity(0.1),
+                          color: AppTheme.statusSuccess.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(

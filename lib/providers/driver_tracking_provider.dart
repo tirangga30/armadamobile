@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/services/location_service.dart';
 import '../../data/models/delivery_model.dart';
+import '../../data/models/emergency_model.dart';
 import '../../data/repositories/armada_api_service.dart';
 
 class DriverTrackingProvider extends ChangeNotifier {

@@ -49,7 +49,7 @@ class DriverTrackingView extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 15,
                   offset: const Offset(0, 6),
                 ),
@@ -64,7 +64,7 @@ class DriverTrackingView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -93,7 +93,7 @@ class DriverTrackingView extends StatelessWidget {
                     Text(
                       'Tersinkron: #${tracking.syncCount}',
                       style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -116,7 +116,7 @@ class DriverTrackingView extends StatelessWidget {
                       : 'Menunggu koneksi GPS pertama...',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],

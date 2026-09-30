@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryBlue.withOpacity(0.4),
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.4),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -232,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: Border.all(color: const Color(0xFF334155)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 25,
                         offset: const Offset(0, 10),
                       ),
@@ -339,9 +339,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
-                              color: AppTheme.statusDanger.withOpacity(0.15),
+                              color: AppTheme.statusDanger.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.statusDanger.withOpacity(0.4)),
+                              border: Border.all(color: AppTheme.statusDanger.withValues(alpha: 0.4)),
                             ),
                             child: Row(
                               children: [

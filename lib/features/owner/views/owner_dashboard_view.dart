@@ -66,7 +66,7 @@ class OwnerDashboardView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
+                    color: Colors.black.withValues(alpha: 0.12),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                   ),
@@ -81,9 +81,9 @@ class OwnerDashboardView extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue.withOpacity(0.3),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppTheme.primaryLight.withOpacity(0.3)),
+                          border: Border.all(color: AppTheme.primaryLight.withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           children: [
@@ -149,7 +149,7 @@ class OwnerDashboardView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.statusDanger.withOpacity(0.3),
+                      color: AppTheme.statusDanger.withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -160,7 +160,7 @@ class OwnerDashboardView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -187,7 +187,7 @@ class OwnerDashboardView extends StatelessWidget {
                           Text(
                             'Ada driver yang mengaktifkan sinyal SOS darurat.',
                             style: GoogleFonts.plusJakartaSans(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 12,
                             ),
                           ),
@@ -328,8 +328,8 @@ class OwnerDashboardView extends StatelessWidget {
                         height: 44,
                         decoration: BoxDecoration(
                           color: isAvailable
-                              ? AppTheme.statusSuccess.withOpacity(0.12)
-                              : AppTheme.primaryBlue.withOpacity(0.12),
+                              ? AppTheme.statusSuccess.withValues(alpha: 0.12)
+                              : AppTheme.primaryBlue.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -365,7 +365,7 @@ class OwnerDashboardView extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: isAvailable
-                              ? AppTheme.statusSuccess.withOpacity(0.1)
+                              ? AppTheme.statusSuccess.withValues(alpha: 0.1)
                               : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(20),
                         ),

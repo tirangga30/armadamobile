@@ -38,7 +38,7 @@ class OwnerEmergencyView extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppTheme.statusSuccess.withOpacity(0.1),
+                      color: AppTheme.statusSuccess.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -94,7 +94,7 @@ class OwnerEmergencyView extends StatelessWidget {
         boxShadow: isTriggered
             ? [
                 BoxShadow(
-                  color: AppTheme.statusDanger.withOpacity(0.12),
+                  color: AppTheme.statusDanger.withValues(alpha: 0.12),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -113,7 +113,7 @@ class OwnerEmergencyView extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: (isTriggered ? AppTheme.statusDanger : const Color(0xFF64748B))
-                          .withOpacity(0.12),
+                          .withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -137,8 +137,8 @@ class OwnerEmergencyView extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: isTriggered
-                      ? AppTheme.statusDanger.withOpacity(0.1)
-                      : AppTheme.statusSuccess.withOpacity(0.1),
+                      ? AppTheme.statusDanger.withValues(alpha: 0.1)
+                      : AppTheme.statusSuccess.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -207,10 +207,7 @@ class OwnerEmergencyView extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  final ok = await fleet.resolveEmergency(
-                    em.id,
-                    note: 'Telah diverifikasi dan ditangani oleh Owner.',
-                  );
+                  final ok = await fleet.resolveEmergency(em.id);
                   if (ok && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(

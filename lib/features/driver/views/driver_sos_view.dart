@@ -54,7 +54,7 @@ class _DriverSosViewState extends State<DriverSosView> {
     super.dispose();
   }
 
-  Future<void> _handleTriggerSos(BuildContext context) async {
+  Future<void> _handleTriggerSos() async {
     final tracking = context.read<DriverTrackingProvider>();
 
     final confirmed = await showDialog<bool>(
@@ -66,7 +66,7 @@ class _DriverSosViewState extends State<DriverSosView> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.statusDanger.withOpacity(0.12),
+                color: AppTheme.statusDanger.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.warning_amber_rounded, color: AppTheme.statusDanger, size: 24),
@@ -143,7 +143,7 @@ class _DriverSosViewState extends State<DriverSosView> {
     }
   }
 
-  Future<void> _handleResolveActiveSos(BuildContext context) async {
+  Future<void> _handleResolveActiveSos() async {
     final tracking = context.read<DriverTrackingProvider>();
 
     final confirmed = await showDialog<bool>(
@@ -218,7 +218,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.statusDanger.withOpacity(0.35),
+                    color: AppTheme.statusDanger.withValues(alpha: 0.35),
                     blurRadius: 18,
                     offset: const Offset(0, 8),
                   ),
@@ -233,7 +233,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -262,7 +262,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                       Text(
                         'ID: ${activeEm.id.substring(0, 8)}...',
                         style: GoogleFonts.plusJakartaSans(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 11,
                         ),
                       ),
@@ -282,7 +282,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                     'Tim Pusat & Owner telah menerima koordinat Anda dan sedang memantau kondisi armada secara langsung.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       height: 1.35,
                     ),
                   ),
@@ -291,7 +291,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                     width: double.infinity,
                     height: 46,
                     child: ElevatedButton.icon(
-                      onPressed: () => _handleResolveActiveSos(context),
+                      onPressed: _handleResolveActiveSos,
                       icon: const Icon(Icons.check_circle_rounded, size: 20, color: Color(0xFF991B1B)),
                       label: Text(
                         'Tandai Sudah Aman (Batalkan SOS)',
@@ -326,7 +326,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.statusDanger.withOpacity(0.1),
+                    color: AppTheme.statusDanger.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.headset_mic_rounded, color: AppTheme.statusDanger, size: 22),
@@ -363,7 +363,7 @@ class _DriverSosViewState extends State<DriverSosView> {
           // Big Emergency SOS Button Hero
           Center(
             child: GestureDetector(
-              onTap: tracking.isTriggeringSos ? null : () => _handleTriggerSos(context),
+              onTap: tracking.isTriggeringSos ? null : _handleTriggerSos,
               child: Container(
                 width: 170,
                 height: 170,
@@ -372,7 +372,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.statusDanger.withOpacity(0.4),
+                      color: AppTheme.statusDanger.withValues(alpha: 0.4),
                       blurRadius: 28,
                       spreadRadius: 4,
                       offset: const Offset(0, 8),
@@ -403,7 +403,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                             Text(
                               'KIRIM KOORDINAT',
                               style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white.withOpacity(0.85),
+                                color: Colors.white.withValues(alpha: 0.85),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.5,
@@ -447,7 +447,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: AppTheme.statusDanger.withOpacity(0.08),
+                            color: AppTheme.statusDanger.withValues(alpha: 0.08),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           )
@@ -460,7 +460,7 @@ class _DriverSosViewState extends State<DriverSosView> {
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppTheme.statusDanger.withOpacity(0.12)
+                            ? AppTheme.statusDanger.withValues(alpha: 0.12)
                             : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -494,13 +494,16 @@ class _DriverSosViewState extends State<DriverSosView> {
                         ],
                       ),
                     ),
-                    Radio<String>(
-                      value: item['type'] as String,
-                      groupValue: _selectedType,
-                      activeColor: AppTheme.statusDanger,
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedType = val);
-                      },
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? AppTheme.statusDanger : const Color(0xFFCBD5E1),
+                          width: isSelected ? 6.5 : 2,
+                        ),
+                      ),
                     ),
                   ],
                 ),

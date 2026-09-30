@@ -12,9 +12,8 @@ class DioClient {
 
   DioClient({
     required SecureStorageService storageService,
-    VoidCallback? onUnauthorized,
-  })  : _storageService = storageService,
-        onUnauthorized = onUnauthorized {
+    this.onUnauthorized,
+  })  : _storageService = storageService {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.apiBaseUrl,

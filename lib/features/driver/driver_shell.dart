@@ -53,7 +53,7 @@ class _DriverShellState extends State<DriverShell> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),
@@ -69,7 +69,7 @@ class _DriverShellState extends State<DriverShell> {
             },
             backgroundColor: Colors.white,
             elevation: 0,
-            indicatorColor: AppTheme.statusSuccess.withOpacity(0.15),
+            indicatorColor: AppTheme.statusSuccess.withValues(alpha: 0.15),
             destinations: [
               const NavigationDestination(
                 icon: Icon(Icons.assignment_outlined),

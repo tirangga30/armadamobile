@@ -70,7 +70,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
                     height: 130,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.2), width: 1.5),
+                      border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2), width: 1.5),
                     ),
                   ),
                 ),
@@ -80,7 +80,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
                     height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.4), width: 1.5),
+                      border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.4), width: 1.5),
                     ),
                   ),
                 ),
@@ -93,7 +93,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.8),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.8),
                           blurRadius: 10,
                           spreadRadius: 2,
                         ),
@@ -116,7 +116,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue.withOpacity(0.3),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -233,7 +233,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
+        color: color.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -301,7 +301,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.12),
+                      color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(Icons.drive_eta_rounded, color: statusColor, size: 20),
@@ -332,7 +332,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
+                  color: statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

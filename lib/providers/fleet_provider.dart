@@ -78,7 +78,7 @@ class FleetProvider extends ChangeNotifier {
           latitude: _emergencies[index].latitude,
           longitude: _emergencies[index].longitude,
           emergencyType: _emergencies[index].emergencyType,
-          note: note ?? _emergencies[index].note,
+          note: _emergencies[index].note,
           status: 'RESOLVED',
           triggeredAt: _emergencies[index].triggeredAt,
           resolvedAt: DateTime.now().toUtc().toIso8601String(),
