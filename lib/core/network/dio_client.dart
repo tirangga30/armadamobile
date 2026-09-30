@@ -41,7 +41,7 @@ class DioClient {
           }
 
           if (kDebugMode) {
-            debugPrint('🌐 [DIO REQ] ${options.method} ${options.baseUrl}/${options.path}');
+            debugPrint('🌐 [DIO REQ] ${options.method} ${options.uri}');
             if (options.data != null) {
               debugPrint('📦 [DATA] ${options.data}');
             }
@@ -51,13 +51,13 @@ class DioClient {
         },
         onResponse: (response, handler) {
           if (kDebugMode) {
-            debugPrint('✅ [DIO RES ${response.statusCode}] ${response.requestOptions.path}');
+            debugPrint('✅ [DIO RES ${response.statusCode}] ${response.realUri}');
           }
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
           if (kDebugMode) {
-            debugPrint('❌ [DIO ERR ${e.response?.statusCode}] ${e.requestOptions.path}: ${e.message}');
+            debugPrint('❌ [DIO ERR ${e.response?.statusCode}] ${e.requestOptions.uri}: ${e.message}');
             if (e.response?.data != null) {
               debugPrint('🛑 [BODY] ${e.response?.data}');
             }
@@ -78,6 +78,10 @@ class DioClient {
 
   Dio get dio => _dio;
 
+  String _cleanPath(String path) {
+    return path.startsWith('/') ? path.substring(1) : path;
+  }
+
   /// Helper to execute network request and wrap into standard data / ApiException
   Future<Map<String, dynamic>> get(
     String path, {
@@ -86,7 +90,7 @@ class DioClient {
   }) async {
     try {
       final response = await _dio.get(
-        path,
+        _cleanPath(path),
         queryParameters: queryParameters,
         options: options,
       );
@@ -109,7 +113,7 @@ class DioClient {
   }) async {
     try {
       final response = await _dio.post(
-        path,
+        _cleanPath(path),
         data: data,
         queryParameters: queryParameters,
         options: options,
@@ -133,7 +137,7 @@ class DioClient {
   }) async {
     try {
       final response = await _dio.patch(
-        path,
+        _cleanPath(path),
         data: data,
         queryParameters: queryParameters,
         options: options,
@@ -157,7 +161,7 @@ class DioClient {
   }) async {
     try {
       final response = await _dio.delete(
-        path,
+        _cleanPath(path),
         data: data,
         queryParameters: queryParameters,
         options: options,

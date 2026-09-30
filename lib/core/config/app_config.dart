@@ -4,7 +4,7 @@ class AppConfig {
   static const String clientPlatform = 'Flutter-Mobile';
 
   /// Live Production API Base URL
-  static const String apiBaseUrl = 'https://armada-api.prizftm.my.id/v1';
+  static const String apiBaseUrl = 'https://armada-api.prizftm.my.id/v1/';
 
   /// Network Timeout Configurations
   static const Duration connectTimeout = Duration(seconds: 15);
