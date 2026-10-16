@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../../core/config/theme.dart';
+import '../../../core/widgets/armada_osm_map.dart';
 import '../../../providers/driver_tracking_provider.dart';
 
 class DriverTrackingView extends StatelessWidget {
@@ -12,10 +15,12 @@ class DriverTrackingView extends StatelessWidget {
     final tracking = context.watch<DriverTrackingProvider>();
     final pos = tracking.currentPosition;
 
+    // Default to central logistics Jakarta if device GPS is still initialising
     final lat = pos?.latitude ?? -6.2088;
     final lng = pos?.longitude ?? 106.8456;
     final accuracy = pos?.accuracy ?? 5.0;
     final speed = (pos?.speed ?? 0.0) * 3.6; // m/s to km/h
+    final driverLatLng = LatLng(lat, lng);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -123,6 +128,51 @@ class DriverTrackingView extends StatelessWidget {
             ),
           ),
 
+          const SizedBox(height: 18),
+
+          // Real Interactive OpenStreetMap
+          ArmadaOsmMap(
+            height: 230,
+            initialCenter: driverLatLng,
+            initialZoom: 15.0,
+            overlayBadgeText: tracking.isTracking ? 'GPS LIVE • OSM PUBLIK' : 'GPS STANDBY',
+            circles: [
+              CircleMarker(
+                point: driverLatLng,
+                radius: (accuracy < 12 ? 14.0 : accuracy).clamp(12.0, 50.0).toDouble(),
+                useRadiusInMeter: false,
+                color: AppTheme.primaryBlue.withValues(alpha: 0.15),
+                borderColor: AppTheme.primaryBlue,
+                borderStrokeWidth: 1.5,
+              ),
+            ],
+            markers: [
+              Marker(
+                point: driverLatLng,
+                width: 60,
+                height: 60,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.5),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.navigation_rounded, color: Colors.white, size: 22),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
           const SizedBox(height: 20),
 
           // Coordinates Grid
@@ -223,8 +273,8 @@ class DriverTrackingView extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Konsumsi Baterai', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B))),
-                    Text('Optimal & Hemat Daya', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.statusSuccess)),
+                    Text('Penyedia Peta (Map Tile)', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B))),
+                    Text('OpenStreetMap (OSM)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryBlue)),
                   ],
                 ),
               ],
