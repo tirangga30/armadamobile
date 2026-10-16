@@ -107,32 +107,39 @@ class OwnerEmergencyView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: (isTriggered ? AppTheme.statusDanger : const Color(0xFF64748B))
-                          .withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (isTriggered ? AppTheme.statusDanger : const Color(0xFF64748B))
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        color: isTriggered ? AppTheme.statusDanger : const Color(0xFF64748B),
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.warning_amber_rounded,
-                      color: isTriggered ? AppTheme.statusDanger : const Color(0xFF64748B),
-                      size: 20,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        em.emergencyType,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: isTriggered ? AppTheme.statusDanger : AppTheme.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    em.emergencyType,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: isTriggered ? AppTheme.statusDanger : AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -173,21 +180,27 @@ class OwnerEmergencyView extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Driver: ${em.driver?.displayName ?? "Driver #"} (${em.driver?.employeeCode ?? ""})',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Text(
+                        'Driver: ${em.driver?.displayName ?? "Driver #"} (${em.driver?.employeeCode ?? ""})',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(
-                      em.driver?.phone ?? '',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: AppTheme.primaryBlue,
-                        fontWeight: FontWeight.w600,
+                    if (em.driver?.phone != null && em.driver!.phone!.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        em.driver!.phone!,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: AppTheme.primaryBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 4),

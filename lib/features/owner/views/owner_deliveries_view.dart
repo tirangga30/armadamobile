@@ -201,20 +201,26 @@ class _OwnerDeliveriesViewState extends State<OwnerDeliveriesView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.badge_outlined, size: 16, color: Color(0xFF64748B)),
-                  const SizedBox(width: 6),
-                  Text(
-                    item.assignedDriver ?? 'Belum Ada Driver',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF475569),
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.badge_outlined, size: 16, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        item.assignedDriver ?? 'Belum Ada Driver',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF475569),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '${item.totalItems} Barang • ${item.totalWeightKg.toInt()} kg',
                 style: GoogleFonts.plusJakartaSans(
