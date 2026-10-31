@@ -7,9 +7,13 @@ class FleetDriver {
   final String? plateNumber;
   final String? currentDeliveryId;
   final DriverLocation? location;
+  final String? phone;
+  final String? assignedVehicle;
+  final double vehicleCapacityKg;
 
   FleetDriver({
-    required this.driverId,
+    String? id,
+    String? driverId,
     required this.driverName,
     required this.employeeCode,
     required this.operationalStatus,
@@ -17,7 +21,12 @@ class FleetDriver {
     this.plateNumber,
     this.currentDeliveryId,
     this.location,
-  });
+    this.phone,
+    this.assignedVehicle,
+    this.vehicleCapacityKg = 1500.0,
+  }) : driverId = id ?? driverId ?? '';
+
+  String get id => driverId;
 
   bool get isOnline => operationalStatus != 'OFFLINE';
   bool get isDelivering => operationalStatus == 'DELIVERING' || operationalStatus == 'DRIVING';
@@ -29,7 +38,7 @@ class FleetDriver {
     }
 
     return FleetDriver(
-      driverId: json['driverId']?.toString() ?? '',
+      driverId: json['driverId']?.toString() ?? json['id']?.toString() ?? '',
       driverName: json['driverName']?.toString() ?? 'Driver',
       employeeCode: json['employeeCode']?.toString() ?? '',
       operationalStatus: (json['operationalStatus']?.toString() ?? 'OFFLINE').toUpperCase(),
@@ -37,6 +46,13 @@ class FleetDriver {
       plateNumber: json['plateNumber']?.toString(),
       currentDeliveryId: json['currentDeliveryId']?.toString(),
       location: loc,
+      phone: json['phone']?.toString(),
+      assignedVehicle: json['assignedVehicle']?.toString() ?? json['vehicleName']?.toString(),
+      vehicleCapacityKg: (json['vehicleCapacityKg'] is num)
+          ? (json['vehicleCapacityKg'] as num).toDouble()
+          : (json['capacityWeightKg'] is num)
+              ? (json['capacityWeightKg'] as num).toDouble()
+              : double.tryParse(json['vehicleCapacityKg']?.toString() ?? '') ?? 1500.0,
     );
   }
 
@@ -50,6 +66,9 @@ class FleetDriver {
       'plateNumber': plateNumber,
       'currentDeliveryId': currentDeliveryId,
       'location': location?.toJson(),
+      if (phone != null) 'phone': phone,
+      if (assignedVehicle != null) 'assignedVehicle': assignedVehicle,
+      'vehicleCapacityKg': vehicleCapacityKg,
     };
   }
 }

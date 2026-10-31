@@ -1,0 +1,56 @@
+[DIRECTIVE: EXECUTE TASK 13 OF PHASE 3 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 13: Order Creation Multi-Stop Form Modal (CreateDeliveryModalSheet)** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/create_delivery_modal_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/features/owner/widgets/create_delivery_modal_sheet.dart';
+   import 'package:armada_mobile/data/models/create_delivery_dto.dart';
+
+   void main() {
+     testWidgets('CreateDeliveryModalSheet renders DO Number, Add Item, and Add Stop buttons', (tester) async {
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: CreateDeliveryModalSheet(
+               onSubmit: (CreateDeliveryDto dto) async {},
+             ),
+           ),
+         ),
+       );
+
+       expect(find.text('Buat Perintah Kirim (DO) Baru'), findsOneWidget);
+       expect(find.text('Tambah Barang'), findsOneWidget);
+       expect(find.text('Tambah Titik Tujuan (Stop)'), findsOneWidget);
+       expect(find.text('Simpan & Terbitkan DO'), findsOneWidget);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/create_delivery_modal_test.dart` dan buktikan terjadi error kompilasi karena widget belum dibuat.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/features/owner/widgets/create_delivery_modal_sheet.dart`:
+     * Modal bottom sheet ber-scroll (Material 3 rounded 24dp top, drag handle).
+     * Form Section 1: Informasi DO:
+       - Nomor DO (TextFormField dengan validator tidak boleh kosong).
+       - Nama Pelanggan / Outlet (TextFormField).
+       - Catatan Pengiriman (Opsional).
+     * Form Section 2: Muatan Barang / Koli (Dynamic List Builder):
+       - Nama barang, Jumlah (qty), Satuan (PCS, DUS, KARTON, KG), dan Berat per unit (kg).
+       - Tombol "Tambah Barang" untuk menambah baris barang dan tombol hapus baris.
+       - Indikator otomatis Total Koli dan Total Berat (kg).
+     * Form Section 3: Titik Singgah / Waypoints (Dynamic Multi-Stop Builder):
+       - Urutan nomor stop (1, 2, 3...).
+       - Nama Toko Tujuan, Alamat Lengkap, Koordinat Latitude & Longitude (default ke wilayah Jakarta jika dikosongkan).
+       - Tombol "Tambah Titik Tujuan (Stop)" dan tombol hapus stop.
+     * Validasi sebelum submit: Minimal 1 barang dan minimal 1 titik stop.
+     * Tombol "Simpan & Terbitkan DO" memanggil callback `onSubmit(CreateDeliveryDto(...))`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/create_delivery_modal_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 13 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 13.

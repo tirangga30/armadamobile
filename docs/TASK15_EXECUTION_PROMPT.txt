@@ -1,0 +1,70 @@
+[DIRECTIVE: EXECUTE TASK 15 OF PHASE 3 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 15: Owner Deliveries View & Audit Log Detail Integration** guna menuntaskan seluruh **FASE 3**.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/owner_delivery_detail_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/features/owner/views/owner_delivery_detail_view.dart';
+   import 'package:armada_mobile/data/models/delivery_model.dart';
+
+   void main() {
+     testWidgets('OwnerDeliveryDetailView renders delivery status, items, and stops timeline', (tester) async {
+       final delivery = DeliveryModel(
+         id: 'del-001',
+         orderNumber: 'DO-2026-0901',
+         clientName: 'PT Logistik Makmur',
+         origin: 'Gudang Pusat Cakung',
+         destination: 'Outlet Sudirman',
+         status: 'ASSIGNED',
+         assignedDriver: 'Driver Utama',
+         plateNumber: 'B 9281 SXZ',
+         totalItems: 12,
+         totalWeightKg: 450,
+         createdAt: '2026-09-30 08:30:00',
+         stops: [
+           DeliveryStop(
+             id: 'st-01',
+             sequence: 1,
+             destinationName: 'Toko Sumber Rejeki',
+             address: 'Jl. Merdeka No. 10',
+             status: 'PENDING',
+           ),
+         ],
+       );
+
+       await tester.pumpWidget(
+         MaterialApp(
+           home: OwnerDeliveryDetailView(delivery: delivery),
+         ),
+       );
+
+       expect(find.text('DO-2026-0901'), findsOneWidget);
+       expect(find.text('Rincian Titik Pengantaran'), findsOneWidget);
+       expect(find.text('Toko Sumber Rejeki'), findsOneWidget);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/owner_delivery_detail_test.dart` dan buktikan terjadi error kompilasi karena `owner_delivery_detail_view.dart` belum ada.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/features/owner/views/owner_delivery_detail_view.dart`:
+     * AppBar dengan judul "Detail Pengiriman" dan nomor DO.
+     * Header Card: Status badge, Client/Customer Name, Asal & Tujuan Utama, Total Bobot Muatan & Total Koli.
+     * Informasi Armada & Driver: Nama Driver dan Nomor Plat Truk (jika belum ditugaskan, tampilkan tombol "Tugaskan Armada" yang memicu `AssignDriverModalSheet`).
+     * Rincian Titik Pengantaran (Waypoints Timeline): Daftar stops (1..N) dengan nomor pin, alamat, status per-stop, dan nama penerima/foto jika status `DELIVERED`.
+     * Tombol "Optimasi Rute (2-Opt)" jika stops lebih dari 1 untuk membuka `RouteOptimizerSheet`.
+     * Audit Log / Riwayat Aktivitas timeline sederhana (Diterbitkan, Diterima Driver, Mulai Perjalanan, Selesai).
+   - Perbarui `lib/features/owner/views/owner_deliveries_view.dart`:
+     * Tambahkan `FloatingActionButton.extended` dengan ikon tambah dan label "Buat Pengiriman Baru".
+     * Mengetuk FAB akan membuka `CreateDeliveryModalSheet`. Setelah form disimpan, buat delivery via API, tambahkan ke list, dan segarkan UI.
+     * Mengetuk kartu pengiriman (`_buildDeliveryCard`) akan membuka `OwnerDeliveryDetailView(delivery: item)`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/owner_delivery_detail_test.dart` dan buktikan lulus.
+   - Jalankan seluruh rangkaian test (`flutter test`) dan buktikan 100% lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues (bersih dari lint/compilation errors).
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 15 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil penuntasan FASE 3.

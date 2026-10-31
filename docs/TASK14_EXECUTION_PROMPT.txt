@@ -1,0 +1,68 @@
+[DIRECTIVE: EXECUTE TASK 14 OF PHASE 3 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 14: Fleet & Driver Assignment Modal Sheet (AssignDriverModalSheet)** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/assign_driver_modal_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/features/owner/widgets/assign_driver_modal_sheet.dart';
+   import 'package:armada_mobile/data/models/fleet_driver_model.dart';
+   import 'package:armada_mobile/data/models/create_delivery_dto.dart';
+
+   void main() {
+     testWidgets('AssignDriverModalSheet lists drivers and displays overload alert when capacity exceeded', (tester) async {
+       final drivers = [
+         FleetDriver(
+           id: 'drv-01',
+           employeeCode: 'EMP-001',
+           driverName: 'Pak Budi',
+           phone: '+62811111111',
+           operationalStatus: 'AVAILABLE',
+           assignedVehicle: 'Truk Box Engkel (B 1234 CD)',
+           vehicleCapacityKg: 1000.0,
+         ),
+       ];
+
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: AssignDriverModalSheet(
+               deliveryId: 'del-001',
+               deliveryCode: 'DO-2026-0901',
+               totalCargoWeightKg: 1200.0, // Overload (> 1000kg)
+               availableDrivers: drivers,
+               onAssign: (AssignDeliveryDto dto) async {},
+             ),
+           ),
+         ),
+       );
+
+       expect(find.text('Penugasan Driver & Armada'), findsOneWidget);
+       expect(find.text('Pak Budi'), findsOneWidget);
+       expect(find.text('PERINGATAN: MUATAN MELEBIHI KAPASITAS!'), findsOneWidget);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/assign_driver_modal_test.dart` dan buktikan terjadi error kompilasi karena `assign_driver_modal_sheet.dart` belum ada.
+3. **Step 3 (Green - Implementation):**
+   - Periksa model `FleetDriver` di `lib/data/models/fleet_driver_model.dart`. Tambahkan atribut `vehicleCapacityKg` (opsional / default 1500.0 kg) jika belum ada.
+   - Buat `lib/features/owner/widgets/assign_driver_modal_sheet.dart`:
+     * Modal bottom sheet dengan rounded top corners dan drag handle.
+     * Header info pengiriman: Nomor DO dan Total Berat Kargo (kg).
+     * Daftar pilihan driver armada yang berstatus `AVAILABLE`:
+       - Tampilkan nama driver, kode pegawai, plat/tipe kendaraan, dan kapasitas muatan (kg).
+     * HATI-HATI ATURAN REVIEW FOCUS #3:
+       - Jika bobot kargo (`totalCargoWeightKg`) melampaui kapasitas armada yang dipilih (`driver.vehicleCapacityKg`), tampilkan banner merah mencolok:
+         `"PERINGATAN: MUATAN MELEBIHI KAPASITAS!"`
+         dan nonaktifkan / blokir tombol konfirmasi penugasan untuk mencegah penolakan dari backend.
+     * Textfield input catatan penugasan untuk driver.
+     * Tombol aksi "Konfirmasi Penugasan Armada" yang memanggil callback `onAssign(AssignDeliveryDto(...))`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/assign_driver_modal_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 14 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 14.

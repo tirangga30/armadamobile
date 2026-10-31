@@ -8,6 +8,7 @@ import '../models/emergency_model.dart';
 import '../models/delivery_model.dart';
 import '../models/pod_dto.dart';
 import '../models/route_geometry_model.dart';
+import '../models/create_delivery_dto.dart';
 
 class ArmadaApiService {
   final DioClient _client;
@@ -401,5 +402,40 @@ class ArmadaApiService {
       'deliveries/$deliveryId/routes/select',
       data: dto.toJson(),
     );
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                       DELIVERY CREATION & ASSIGNMENT                       */
+  /* -------------------------------------------------------------------------- */
+
+  Future<DeliveryModel> createDelivery(CreateDeliveryDto dto) async {
+    final res = await _client.post('deliveries', data: dto.toJson());
+    final data = res['data'];
+    if (data == null || data is! Map<String, dynamic>) {
+      throw ApiException(
+        code: 'CREATE_DELIVERY_FAILED',
+        message: 'Respon server tidak memuat data pengiriman yang dibuat.',
+      );
+    }
+    return DeliveryModel.fromJson(data);
+  }
+
+  Future<void> assignDelivery(String deliveryId, AssignDeliveryDto dto) async {
+    await _client.post(
+      'deliveries/$deliveryId/assign',
+      data: dto.toJson(),
+    );
+  }
+
+  Future<DeliveryModel> getDeliveryDetail(String deliveryId) async {
+    final res = await _client.get('deliveries/$deliveryId');
+    final data = res['data'];
+    if (data == null || data is! Map<String, dynamic>) {
+      throw ApiException(
+        code: 'DELIVERY_NOT_FOUND',
+        message: 'Data pengiriman tidak ditemukan.',
+      );
+    }
+    return DeliveryModel.fromJson(data);
   }
 }

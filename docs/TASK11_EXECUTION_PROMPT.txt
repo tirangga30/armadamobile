@@ -1,0 +1,94 @@
+[DIRECTIVE: EXECUTE TASK 11 OF PHASE 3 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 11: Delivery Creation & Assignment DTOs** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/create_delivery_dto_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/models/create_delivery_dto.dart';
+
+   void main() {
+     test('CreateDeliveryDto serializes nested items and stops to backend schema', () {
+       final dto = CreateDeliveryDto(
+         deliveryCode: 'DO-2026-1001',
+         items: [
+           CreateDeliveryItemDto(
+             itemCode: 'ITM-01',
+             itemName: 'Minyak Goreng 2L',
+             quantity: 20,
+             unit: 'DUS',
+             weightKg: 240.0,
+           ),
+         ],
+         stops: [
+           CreateDeliveryStopDto(
+             sequence: 1,
+             destinationName: 'Toko Makmur',
+             address: 'Jl. Merdeka No. 10',
+             latitude: -6.18,
+             longitude: 106.82,
+           ),
+         ],
+       );
+
+       final json = dto.toJson();
+       expect(json['deliveryCode'], 'DO-2026-1001');
+       expect((json['items'] as List).length, 1);
+       expect((json['stops'] as List).length, 1);
+       expect(json['items'][0]['itemName'], 'Minyak Goreng 2L');
+       expect(json['stops'][0]['destinationName'], 'Toko Makmur');
+     });
+
+     test('AssignDeliveryDto serializes driver and vehicle with optional notes', () {
+       final dto = AssignDeliveryDto(
+         driverId: 'drv-uuid-001',
+         vehicleId: 'veh-uuid-001',
+         notes: 'Segera kirim pagi',
+       );
+
+       final json = dto.toJson();
+       expect(json['driverId'], 'drv-uuid-001');
+       expect(json['vehicleId'], 'veh-uuid-001');
+       expect(json['notes'], 'Segera kirim pagi');
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/create_delivery_dto_test.dart` dan buktikan terjadi error kompilasi karena `create_delivery_dto.dart` belum ada.
+3. **Step 3 (Green - Implementation):**
+   - Buat file `lib/data/models/create_delivery_dto.dart`:
+     * `CreateDeliveryItemDto`:
+       - `final String itemCode;`
+       - `final String itemName;`
+       - `final int quantity;`
+       - `final String unit;` // PCS, DUS, KARTON, KG
+       - `final double weightKg;`
+       - `toJson()` & `fromJson()`
+     * `CreateDeliveryStopDto`:
+       - `final int sequence;`
+       - `final String destinationName;`
+       - `final String address;`
+       - `final double latitude;`
+       - `final double longitude;`
+       - `final String? contactPerson;`
+       - `final String? contactPhone;`
+       - `toJson()` & `fromJson()`
+     * `CreateDeliveryDto`:
+       - `final String deliveryCode;`
+       - `final String? customerName;`
+       - `final String? notes;`
+       - `final List<CreateDeliveryItemDto> items;`
+       - `final List<CreateDeliveryStopDto> stops;`
+       - `toJson()` & `fromJson()`
+     * `AssignDeliveryDto`:
+       - `final String driverId;`
+       - `final String vehicleId;`
+       - `final String? notes;`
+       - `toJson()` & `fromJson()`
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/create_delivery_dto_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 11 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 11.

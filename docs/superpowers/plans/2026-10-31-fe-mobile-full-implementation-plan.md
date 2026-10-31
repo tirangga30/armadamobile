@@ -610,7 +610,7 @@ git commit -m "feat(ui): add route optimization bottom sheet and integrate polyl
 - Consumes: None (Core data layer)
 - Produces: `CreateDeliveryDto`, `CreateDeliveryItemDto`, `CreateDeliveryStopDto`, `AssignDeliveryDto`.
 
-- [ ] **Step 1: Write unit test in `test/create_delivery_dto_test.dart`**
+- [x] **Step 1: Write unit test in `test/create_delivery_dto_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/data/models/create_delivery_dto.dart';
@@ -647,18 +647,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/create_delivery_dto_test.dart`
 Expected: FAIL with "create_delivery_dto.dart not found".
 
-- [ ] **Step 3: Implement DTO classes in `lib/data/models/create_delivery_dto.dart`**
+- [x] **Step 3: Implement DTO classes in `lib/data/models/create_delivery_dto.dart`**
 Define `CreateDeliveryDto`, `CreateDeliveryItemDto`, `CreateDeliveryStopDto`, and `AssignDeliveryDto` with strict validations matching NestJS DTOs.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/create_delivery_dto_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/data/models/create_delivery_dto.dart test/create_delivery_dto_test.dart
 git commit -m "feat(delivery): create delivery creation and assignment DTO models"
@@ -678,7 +678,7 @@ git commit -m "feat(delivery): create delivery creation and assignment DTO model
   - `Future<void> assignDelivery(String deliveryId, AssignDeliveryDto dto)`
   - `Future<DeliveryModel> getDeliveryDetail(String deliveryId)`
 
-- [ ] **Step 1: Write failing test in `test/delivery_create_assign_api_test.dart`**
+- [x] **Step 1: Write failing test in `test/delivery_create_assign_api_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/data/repositories/armada_api_service.dart';
@@ -698,20 +698,20 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/delivery_create_assign_api_test.dart`
 Expected: FAIL with methods not defined.
 
-- [ ] **Step 3: Implement methods in `lib/data/repositories/armada_api_service.dart`**
+- [x] **Step 3: Implement methods in `lib/data/repositories/armada_api_service.dart`**
 - `createDelivery`: `POST /v1/deliveries`
 - `assignDelivery`: `POST /v1/deliveries/:id/assign`
 - `getDeliveryDetail`: `GET /v1/deliveries/:id`
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/delivery_create_assign_api_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/data/repositories/armada_api_service.dart test/delivery_create_assign_api_test.dart
 git commit -m "feat(api): add endpoints for creating and assigning deliveries"
@@ -728,7 +728,7 @@ git commit -m "feat(api): add endpoints for creating and assigning deliveries"
 - Consumes: `CreateDeliveryDto`, `ArmadaApiService`.
 - Produces: `CreateDeliveryModalSheet` widget.
 
-- [ ] **Step 1: Write widget test in `test/create_delivery_modal_test.dart`**
+- [x] **Step 1: Write widget test in `test/create_delivery_modal_test.dart`**
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -753,18 +753,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/create_delivery_modal_test.dart`
 Expected: FAIL with "create_delivery_modal_sheet.dart not found".
 
-- [ ] **Step 3: Implement `CreateDeliveryModalSheet` in `lib/features/owner/widgets/create_delivery_modal_sheet.dart`**
+- [x] **Step 3: Implement `CreateDeliveryModalSheet` in `lib/features/owner/widgets/create_delivery_modal_sheet.dart`**
 Include text field for DO Number with validator, dynamic list for Cargo Items (Item Name, Quantity, Unit, Weight), dynamic list for Stops (Destination Name, Address, Latitude, Longitude), total weight calculator, and validation before submit.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/create_delivery_modal_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/features/owner/widgets/create_delivery_modal_sheet.dart test/create_delivery_modal_test.dart
 git commit -m "feat(owner): implement multi-stop delivery creation modal sheet"
@@ -781,7 +781,7 @@ git commit -m "feat(owner): implement multi-stop delivery creation modal sheet"
 - Consumes: `FleetDriver`, `AssignDeliveryDto`, `ArmadaApiService`.
 - Produces: `AssignDriverModalSheet` with pre-flight vehicle capacity check.
 
-- [ ] **Step 1: Write widget test in `test/assign_driver_modal_test.dart`**
+- [x] **Step 1: Write widget test in `test/assign_driver_modal_test.dart`**
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -818,18 +818,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/assign_driver_modal_test.dart`
 Expected: FAIL with "assign_driver_modal_sheet.dart not found".
 
-- [ ] **Step 3: Implement `AssignDriverModalSheet` in `lib/features/owner/widgets/assign_driver_modal_sheet.dart`**
+- [x] **Step 3: Implement `AssignDriverModalSheet` in `lib/features/owner/widgets/assign_driver_modal_sheet.dart`**
 List available drivers from `FleetProvider`, select driver & vehicle, calculate cargo weight versus vehicle capacity, show warning banner if overweight, and invoke `onAssign`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/assign_driver_modal_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/features/owner/widgets/assign_driver_modal_sheet.dart test/assign_driver_modal_test.dart
 git commit -m "feat(owner): implement fleet assignment modal with cargo capacity validation"
@@ -847,7 +847,7 @@ git commit -m "feat(owner): implement fleet assignment modal with cargo capacity
 - Consumes: `CreateDeliveryModalSheet`, `AssignDriverModalSheet`, `ArmadaApiService`.
 - Produces: `OwnerDeliveryDetailView` with audit trail timeline.
 
-- [ ] **Step 1: Write widget test in `test/owner_delivery_detail_test.dart`**
+- [x] **Step 1: Write widget test in `test/owner_delivery_detail_test.dart`**
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -877,18 +877,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/owner_delivery_detail_test.dart`
 Expected: FAIL with "owner_delivery_detail_view.dart not found".
 
-- [ ] **Step 3: Implement `OwnerDeliveryDetailView` and update `OwnerDeliveriesView`**
+- [x] **Step 3: Implement `OwnerDeliveryDetailView` and update `OwnerDeliveriesView`**
 Add FAB "Buat Pengiriman Baru" in `OwnerDeliveriesView` to open `CreateDeliveryModalSheet`. Tapping any delivery card navigates to `OwnerDeliveryDetailView` showing stops, cargo items, assign button (if draft/assigned), route optimization button, and activity history.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/owner_delivery_detail_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/features/owner/views/owner_deliveries_view.dart lib/features/owner/views/owner_delivery_detail_view.dart test/owner_delivery_detail_test.dart
 git commit -m "feat(owner): integrate delivery creation, assignment and detail view with audit log"

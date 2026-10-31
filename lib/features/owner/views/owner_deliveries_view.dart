@@ -3,7 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/config/theme.dart';
 import '../../../data/models/delivery_model.dart';
+import '../../../data/models/create_delivery_dto.dart';
 import '../../../providers/fleet_provider.dart';
+import '../widgets/create_delivery_modal_sheet.dart';
+import 'owner_delivery_detail_view.dart';
 
 class OwnerDeliveriesView extends StatefulWidget {
   const OwnerDeliveriesView({super.key});
@@ -68,11 +71,42 @@ class _OwnerDeliveriesViewState extends State<OwnerDeliveriesView> {
                     itemCount: deliveries.length,
                     itemBuilder: (context, idx) {
                       final item = deliveries[idx];
-                      return _buildDeliveryCard(item);
+                      return _buildDeliveryCard(context, item);
                     },
                   ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => CreateDeliveryModalSheet(
+              onSubmit: (CreateDeliveryDto dto) async {
+                await fleet.fetchAllData();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Surat Jalan ${dto.deliveryCode} berhasil dibuat!'),
+                      backgroundColor: AppTheme.statusSuccess,
+                    ),
+                  );
+                }
+              },
+            ),
+          );
+        },
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: Text(
+          'Buat Pengiriman Baru',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppTheme.primaryBlue,
       ),
     );
   }
@@ -97,7 +131,7 @@ class _OwnerDeliveriesViewState extends State<OwnerDeliveriesView> {
     );
   }
 
-  Widget _buildDeliveryCard(DeliveryModel item) {
+  Widget _buildDeliveryCard(BuildContext context, DeliveryModel item) {
     Color statusColor = AppTheme.primaryBlue;
     if (item.status == 'DELIVERED' || item.status == 'COMPLETED') {
       statusColor = AppTheme.statusSuccess;
@@ -105,14 +139,23 @@ class _OwnerDeliveriesViewState extends State<OwnerDeliveriesView> {
       statusColor = AppTheme.statusWarning;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => OwnerDeliveryDetailView(delivery: item),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -231,6 +274,7 @@ class _OwnerDeliveriesViewState extends State<OwnerDeliveriesView> {
             ],
           ),
         ],
+      ),
       ),
     );
   }
