@@ -1,0 +1,52 @@
+[STRICT DIRECTIVE: PLAN MODE ONLY]
+Kamu adalah Lead Mobile Software Engineer (Flutter). Tugasmu saat ini adalah:
+MEMBUAT DOKUMEN SPESIFIKASI TEKNIS & IMPLEMENTATION PLAN LENGKAP, DETAIL, DAN PRODUCTION-GRADE untuk melengkapi seluruh fitur Frontend Mobile (Owner & Driver) pada repositori ini (`armadamobile`).
+
+PERATURAN MUTLAK:
+1. STRICT PLAN MODE: DILARANG mengubah kode sumber aplikasi (.dart), DILARANG menjalankan git commit atau migrasi. Saat ini HANYA menulis dokumen perencanaan di `docs/`.
+2. Gunakan plugin `superpowers` untuk menyusun spesifikasi dan rencana kerja terstruktur di:
+   - `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`
+   - `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md`
+3. Konsultasikan skill UI/UX Pro Max di `.opencode/skills/ui-ux-pro-max/` untuk standar desain token, tata letak mobile, ergonomi driver (one-thumb rule), dan modal sheet.
+4. Gunakan MCP `context7` bila perlu untuk memeriksa dokumentasi resmi dan best practices Flutter packages: `image_picker`, `signature`, `url_launcher`, `socket_io_client`, `flutter_map`, `latlong2`.
+5. BACA SUMBER KEBENARAN UTAMA (MASTER SOURCES OF TRUTH):
+   - `MASTER-PROMPT-ARMADA-FRONTEND.md` (di repositori ini)
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/01-PRD.md`
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/02-SRS.md`
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/04-SYSTEM-ARCHITECTURE.md`
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/06-API-REALTIME.md`
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/API-ENDPOINTS.md`
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/HANDOFF-FE.md`
+   - Seluruh kode yang sudah ada di `lib/` (models, services, providers, views, widgets).
+
+RUANG LINGKUP PERENCANAAN DETAIL (4 FASE BESAR):
+1. FASE 1: Driver Granular Stop Execution & Physical Proof of Delivery (POD)
+   - Per-stop state transitions: DEPART -> ARRIVE -> UNLOAD -> POD / DELIVERED, serta failure path FAIL (pilihan alasan gagal: TOKO_TUTUP, PENERIMA_TIDAK_DAPAT_DIHUBUNGI, BARANG_RUSAK, JALAN_TERPUTUS, LAINNYA).
+   - Pengambilan foto fisik via kamera (`image_picker`) + kompresi + preview.
+   - Kanvas tanda tangan digital interaktif (`signature`).
+   - Multipart file upload ke `POST /v1/files/upload` dan submit ke `POST /v1/me/stops/:id/pod` dengan header `Idempotency-Key`.
+2. FASE 2: Visualisasi Rute Peta (Polyline) & Navigasi Eksternal
+   - Fetching geometri rute dari `GET /v1/deliveries/:id/routes/current`.
+   - Rendering PolylineLayer pada `ArmadaOsmMap` (OpenStreetMap).
+   - Penomoran marker stop (1, 2, 3...) dengan status visual.
+   - Tombol navigasi luar (`url_launcher`) memicu Google Maps/Waze ke koordinat stop.
+   - UI rekomendasi dan pemilihan rute terbaik (`POST /v1/deliveries/:id/routes/recommend` & `select`).
+3. FASE 3: Manajemen Pengiriman & Penugasan Armada oleh Owner
+   - Form pembuatan order baru: nomor DO, multi-stop builder (nama toko, alamat, koordinat), cargo item builder (nama barang, koli, berat kg).
+   - Modal penugasan driver & armada kendaraan (`POST /v1/deliveries/:id/assign`) dengan validasi kapasitas muatan.
+   - Detail pengiriman komprehensif & riwayat audit log aktivitas.
+4. FASE 4: Realtime Gateway (Socket.IO) & In-App Notification Center
+   - Integrasi client `socket_io_client` ke `wss://<host>/v1/realtime` dengan autentikasi Bearer handshake.
+   - Event streaming: `driver:location:update`, `delivery:status:changed`, `emergency:triggered` untuk pembaruan marker real-time tanpa polling REST.
+   - Pusat notifikasi (`GET /v1/notifications`, `PATCH /v1/notifications/:id/read`).
+   - Notifikasi darurat SOS banner dan sound alert.
+
+Tulis dokumen spesifikasi dan implementation plan yang sangat lengkap, mencakup:
+- Arsitektur kelas / model DTO baru
+- State management provider changes
+- Endpoint request/response mapping lengkap
+- Skema validasi input dan error handling (standard envelope: { success, error: { code, message, requestId } })
+- Langkah-langkah TDD dan verifikasi linter/test (`flutter analyze`, `flutter test`)
+- Diagram alur Mermaid
+
+Setelah selesai membuat dokumen di `docs/superpowers/specs/` dan `docs/superpowers/plans/`, berikan laporan ringkasan rencana dan nyatakan status: PLAN READY FOR REVIEW.

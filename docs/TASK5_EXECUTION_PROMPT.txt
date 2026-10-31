@@ -1,0 +1,67 @@
+[DIRECTIVE: EXECUTE TASK 5 OF PHASE 1 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 5: Driver Stop Execution Provider & View Integration** guna menuntaskan seluruh **FASE 1**.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/driver_stop_execution_test.dart`:
+   ```dart
+   import 'dart:typed_data';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/providers/driver_tracking_provider.dart';
+   import 'package:armada_mobile/data/repositories/armada_api_service.dart';
+   import 'package:armada_mobile/core/network/dio_client.dart';
+   import 'package:armada_mobile/core/storage/secure_storage_service.dart';
+   import 'package:armada_mobile/core/services/location_service.dart';
+
+   void main() {
+     test('DriverTrackingProvider exposes stop-level mutation methods', () {
+       final storage = SecureStorageService();
+       final dio = DioClient(storageService: storage);
+       final api = ArmadaApiService(client: dio);
+       final location = LocationService();
+       final provider = DriverTrackingProvider(
+         apiService: api,
+         locationService: location,
+       );
+
+       expect(provider.executeDepartStop, isNotNull);
+       expect(provider.executeArriveStop, isNotNull);
+       expect(provider.executeUnloadStop, isNotNull);
+       expect(provider.executeFailStop, isNotNull);
+       expect(provider.executeSubmitPod, isNotNull);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/driver_stop_execution_test.dart` dan buktikan terjadi error kompilasi karena metode-metode tersebut belum terdefinisi di `DriverTrackingProvider`.
+3. **Step 3 (Green - Implementation):**
+   - Perbarui `lib/providers/driver_tracking_provider.dart`:
+     * Tambahkan `Future<bool> executeDepartStop(String deliveryId, String stopId)` -> panggil `_apiService.departStop(stopId)` dan update state stop lokal menjadi `EN_ROUTE`.
+     * Tambahkan `Future<bool> executeArriveStop(String deliveryId, String stopId)` -> panggil `_apiService.arriveStop(stopId)` dan update state stop lokal menjadi `ARRIVED`.
+     * Tambahkan `Future<bool> executeUnloadStop(String deliveryId, String stopId)` -> panggil `_apiService.unloadStop(stopId)` dan update state stop lokal menjadi `UNLOADED`.
+     * Tambahkan `Future<bool> executeFailStop(String deliveryId, String stopId, {required String reason, String? notes})` -> panggil `_apiService.failStop(stopId, FailStopDto(reason: reason, notes: notes))` dan update status stop menjadi `FAILED`.
+     * Tambahkan `Future<bool> executeSubmitPod(String deliveryId, String stopId, {required String receiverName, required Uint8List photoBytes, required Uint8List signatureBytes, String? notes})`:
+       1. Upload foto: `_apiService.uploadFile(bytes: photoBytes, filename: 'pod_${stopId}_photo.jpg', mediaType: 'image/jpeg')`.
+       2. Upload tanda tangan: `_apiService.uploadFile(bytes: signatureBytes, filename: 'pod_${stopId}_sig.png', mediaType: 'image/png')`.
+       3. Buat UUID `idempotencyKey = const Uuid().v4()`.
+       4. Panggil `_apiService.submitStopPod(stopId, SubmitPodDto(...))`.
+       5. Update status stop lokal menjadi `DELIVERED` dengan `PodModel`.
+       6. Periksa jika semua stop dalam delivery sudah selesai/gagal, panggil `_apiService.completeDelivery(deliveryId, idempotencyKey: ...)` dan update status delivery menjadi `DELIVERED`.
+       7. Tangani error secara anggun dengan setting `_lastError` dan `notifyListeners()`.
+   - Perbarui `lib/features/driver/views/driver_home_view.dart`:
+     * Pada kartu delivery, jika pesanan memiliki stops (`item.stops.isNotEmpty`), render daftar stops berurutan (Stop 1, Stop 2, ...).
+     * Sediakan tombol aksi per stop yang dinamis berdasarkan status stop:
+       - `PENDING` -> Tombol "Berangkat ke Toko (Depart)" memanggil `executeDepartStop`.
+       - `EN_ROUTE` -> Tombol "Tiba di Lokasi (Arrive)" memanggil `executeArriveStop`.
+       - `ARRIVED` -> Tombol "Mulai Bongkar Muat (Unload)" memanggil `executeUnloadStop`.
+       - `UNLOADED` -> Tombol "Selesaikan POD (Kamera & TTD)" membuka modal sheet `PodCaptureSheet` dan tombol "Laporkan Kendala" membuka `StopFailureDialog`.
+       - `DELIVERED` -> Badge hijau "Selesai (POD Diverifikasi)".
+       - `FAILED` -> Badge merah "Pengiriman Gagal".
+     * Tetap sediakan tombol fallback untuk delivery yang belum memiliki daftar sub-stop agar kompatibel mundur.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/driver_stop_execution_test.dart` dan buktikan lulus.
+   - Jalankan seluruh rangkaian test `flutter test` (12+ tests lulus).
+   - Jalankan `flutter analyze` untuk memastikan 0 issues (bersih total dari lint/compilation errors).
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 5 pada `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil penuntasan FASE 1.

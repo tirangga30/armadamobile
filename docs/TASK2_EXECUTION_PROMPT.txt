@@ -1,0 +1,87 @@
+[DIRECTIVE: EXECUTE TASK 2 OF PHASE 1 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 2: POD & Stop Execution Models & DTOs** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/pod_dto_test.dart` berisi pengujian serialisasi dan parsing:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/models/pod_dto.dart';
+   import 'package:armada_mobile/data/models/delivery_model.dart';
+
+   void main() {
+     test('SubmitPodDto serializes to JSON with idempotencyKey and optional notes', () {
+       final dto = SubmitPodDto(
+         receiverName: 'Budi Santoso',
+         photoFileId: 'f-123',
+         signatureFileId: 's-456',
+         notes: 'Diterima utuh',
+         idempotencyKey: 'idem-uuid-001',
+       );
+       final json = dto.toJson();
+       expect(json['receiverName'], 'Budi Santoso');
+       expect(json['photoFileId'], 'f-123');
+       expect(json['signatureFileId'], 's-456');
+       expect(json['notes'], 'Diterima utuh');
+       expect(json['idempotencyKey'], 'idem-uuid-001');
+     });
+
+     test('FailStopDto serializes to JSON with structured reason and notes', () {
+       final dto = FailStopDto(
+         reason: 'STORE_CLOSED',
+         notes: 'Toko tutup pukul 17:00',
+       );
+       final json = dto.toJson();
+       expect(json['reason'], 'STORE_CLOSED');
+       expect(json['notes'], 'Toko tutup pukul 17:00');
+     });
+
+     test('UploadedFileResponse parses server response correctly', () {
+       final res = UploadedFileResponse.fromJson({
+         'fileId': 'file-01',
+         'objectKey': 'pod/2026/10/file-01.jpg',
+         'mediaType': 'image/jpeg',
+         'sizeBytes': 204800,
+       });
+       expect(res.fileId, 'file-01');
+       expect(res.sizeBytes, 204800);
+     });
+
+     test('DeliveryStop parses nested pod and failReason correctly', () {
+       final stop = DeliveryStop.fromJson({
+         'id': 'stop-99',
+         'sequence': 2,
+         'destinationName': 'Toko Berkah',
+         'address': 'Jl. Kenanga No. 12',
+         'status': 'DELIVERED',
+         'failReason': null,
+         'pod': {
+           'receiverName': 'Ahmad',
+           'photoFileId': 'photo-99',
+           'signatureFileId': 'sig-99',
+         }
+       });
+       expect(stop.id, 'stop-99');
+       expect(stop.status, 'DELIVERED');
+       expect(stop.pod, isNotNull);
+       expect(stop.pod?.receiverName, 'Ahmad');
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/pod_dto_test.dart` dan buktikan error kompilasi karena `pod_dto.dart` belum ada.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/data/models/pod_dto.dart`:
+     * `UploadedFileResponse` (`fileId`, `objectKey`, `mediaType`, `sizeBytes`, `url`).
+     * `SubmitPodDto` (`receiverName`, `photoFileId`, `signatureFileId`, `notes`, `idempotencyKey`).
+     * `FailStopDto` (`reason`, `notes`).
+     * `PodModel` (`receiverName`, `photoFileId`, `signatureFileId`, `photoUrl`, `signatureUrl`, `notes`, `submittedAt`).
+   - Update `lib/data/models/delivery_model.dart`:
+     * Tambahkan relasi/field `pod` (`PodModel?`) dan `failReason` (`String?`) pada kelas `DeliveryStop`.
+     * Update `fromJson`, `toJson`, dan konstruktor `DeliveryStop`.
+4. **Step 4 (Verify Green):**
+   - Jalankan `flutter test test/pod_dto_test.dart` dan buktikan semua pengujian lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 2 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil implementasi dan nyatakan kesiapan untuk integrasi repository API.

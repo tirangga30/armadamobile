@@ -1,0 +1,54 @@
+[DIRECTIVE: EXECUTE TASK 1 OF PHASE 1 - TDD IMPLEMENTATION]
+Lanjutkan sesi ini untuk mengeksekusi **Task 1: Project Dependencies & Android/iOS Permissions Setup** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/dependency_test.dart` berisi pengujian resolusi package:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:image_picker/image_picker.dart';
+   import 'package:signature/signature.dart';
+   import 'package:url_launcher/url_launcher.dart';
+   import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+   void main() {
+     test('Verify all required Phase 1-4 packages are resolvable', () {
+       expect(ImagePicker(), isNotNull);
+       expect(SignatureController(), isNotNull);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/dependency_test.dart` dan buktikan terjadi error kompilasi karena dependensi belum terdaftar di `pubspec.yaml`.
+3. **Step 3 (Green - Implementation):**
+   - Tambahkan dependensi ke `pubspec.yaml`:
+     * `image_picker: ^1.1.2`
+     * `signature: ^5.5.0`
+     * `url_launcher: ^6.3.1`
+     * `socket_io_client: ^3.0.2`
+   - Jalankan `flutter pub get`.
+   - Konfigurasi izin Android di `android/app/src/main/AndroidManifest.xml`:
+     * Permission kamera: `<uses-permission android:name="android.permission.CAMERA" />`
+     * Queries intent untuk navigasi luar (Google Maps / Waze / https / geo):
+       ```xml
+       <queries>
+           <intent>
+               <action android:name="android.intent.action.VIEW" />
+               <data android:scheme="geo" />
+           </intent>
+           <intent>
+               <action android:name="android.intent.action.VIEW" />
+               <data android:scheme="https" />
+           </intent>
+       </queries>
+       ```
+   - Konfigurasi izin iOS di `ios/Runner/Info.plist`:
+     * Tambahkan `NSCameraUsageDescription` (e.g. "Aplikasi membutuhkan akses kamera untuk mengambil foto bukti serah terima pengiriman (POD).")
+     * Tambahkan `NSPhotoLibraryUsageDescription`
+     * Tambahkan `LSApplicationQueriesSchemes` untuk `googlemaps` dan `waze`.
+4. **Step 4 (Verify Green):**
+   - Jalankan kembali `flutter test test/dependency_test.dart` dan buktikan test berhasil LULUS (passed).
+   - Jalankan `flutter analyze` untuk memastikan tidak ada warning atau error linter.
+5. **Step 5 (Refactor & Status):**
+   - Update checklist Task 1 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 1 yang memuat hasil test dan verifikasi.

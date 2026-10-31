@@ -1,3 +1,5 @@
+import 'pod_dto.dart';
+
 class DeliveryModel {
   final String id;
   final String orderNumber;
@@ -88,6 +90,7 @@ class DeliveryModel {
     String? assignedDriver,
     String? driverId,
     String? plateNumber,
+    List<DeliveryStop>? stops,
   }) {
     return DeliveryModel(
       id: id,
@@ -102,7 +105,7 @@ class DeliveryModel {
       totalItems: totalItems,
       totalWeightKg: totalWeightKg,
       createdAt: createdAt,
-      stops: stops,
+      stops: stops ?? this.stops,
     );
   }
 }
@@ -114,7 +117,9 @@ class DeliveryStop {
   final String address;
   final double? latitude;
   final double? longitude;
-  final String status; // PENDING, ARRIVED, COMPLETED, FAILED
+  final String status; // PENDING, DEPARTED, ARRIVED, UNLOADING, DELIVERED, COMPLETED, FAILED
+  final PodModel? pod;
+  final String? failReason;
 
   DeliveryStop({
     required this.id,
@@ -124,9 +129,16 @@ class DeliveryStop {
     this.latitude,
     this.longitude,
     this.status = 'PENDING',
+    this.pod,
+    this.failReason,
   });
 
   factory DeliveryStop.fromJson(Map<String, dynamic> json) {
+    PodModel? parsedPod;
+    if (json['pod'] != null && json['pod'] is Map<String, dynamic>) {
+      parsedPod = PodModel.fromJson(json['pod'] as Map<String, dynamic>);
+    }
+
     return DeliveryStop(
       id: json['id']?.toString() ?? '',
       sequence: (json['sequence'] is int)
@@ -137,6 +149,8 @@ class DeliveryStop {
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
       status: (json['status']?.toString() ?? 'PENDING').toUpperCase(),
+      pod: parsedPod,
+      failReason: json['failReason']?.toString() ?? json['failureReason']?.toString(),
     );
   }
 
@@ -149,6 +163,31 @@ class DeliveryStop {
       'latitude': latitude,
       'longitude': longitude,
       'status': status,
+      if (pod != null) 'pod': pod!.toJson(),
+      if (failReason != null) 'failReason': failReason,
     };
+  }
+
+  DeliveryStop copyWith({
+    int? sequence,
+    String? destinationName,
+    String? address,
+    double? latitude,
+    double? longitude,
+    String? status,
+    PodModel? pod,
+    String? failReason,
+  }) {
+    return DeliveryStop(
+      id: id,
+      sequence: sequence ?? this.sequence,
+      destinationName: destinationName ?? this.destinationName,
+      address: address ?? this.address,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      status: status ?? this.status,
+      pod: pod ?? this.pod,
+      failReason: failReason ?? this.failReason,
+    );
   }
 }

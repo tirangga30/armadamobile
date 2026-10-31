@@ -1,3 +1,6 @@
+# Local assistant / agent cache
+.opencode/
+
 # Miscellaneous
 *.class
 *.log

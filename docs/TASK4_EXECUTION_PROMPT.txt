@@ -1,0 +1,76 @@
+[DIRECTIVE: EXECUTE TASK 4 OF PHASE 1 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 4: Interactive Signature Pad & Camera Photo Capture Widget** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/pod_capture_sheet_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/features/driver/widgets/pod_capture_sheet.dart';
+   import 'package:armada_mobile/features/driver/widgets/stop_failure_dialog.dart';
+
+   void main() {
+     testWidgets('PodCaptureSheet renders receiver name input, camera button, and signature canvas', (tester) async {
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: PodCaptureSheet(
+               stopId: 'stop-001',
+               destinationName: 'Toko Sumber Rejeki',
+               onSubmit: ({
+                 required String receiverName,
+                 required dynamic photoBytes,
+                 required dynamic signatureBytes,
+                 String? notes,
+               }) async {},
+             ),
+           ),
+         ),
+       );
+
+       expect(find.text('Bukti Serah Terima (POD)'), findsOneWidget);
+       expect(find.byType(TextField), findsWidgets);
+       expect(find.text('Ambil Foto Fisik'), findsOneWidget);
+       expect(find.text('Tanda Tangan Penerima'), findsOneWidget);
+     });
+
+     testWidgets('StopFailureDialog renders reason dropdown and submit button', (tester) async {
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: StopFailureDialog(
+               stopId: 'stop-001',
+               destinationName: 'Toko Sumber Rejeki',
+               onSubmit: ({required String reason, String? notes}) async {},
+             ),
+           ),
+         ),
+       );
+
+       expect(find.text('Laporkan Kendala Pengantaran'), findsOneWidget);
+       expect(find.text('Alasan Pengiriman Gagal'), findsOneWidget);
+       expect(find.text('Kirim Laporan Kendala'), findsOneWidget);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/pod_capture_sheet_test.dart` dan buktikan terjadi compilation error karena widget belum dibuat.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/features/driver/widgets/pod_capture_sheet.dart`:
+     * Gunakan Material 3 modal bottom sheet design / scrollable container yang ramah driver (ergonomi jempol).
+     * Field input nama penerima barang (`TextEditingController`).
+     * Tombol aksi kamera fisik (`ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1920, maxHeight: 1080, imageQuality: 80)`), thumbnail preview jika foto sudah diambil, dan tombol retake.
+     * Kanvas tanda tangan digital dengan `Signature(controller: SignatureController(penStrokeWidth: 3, penColor: Colors.black, exportBackgroundColor: Colors.white))` dan tombol clear.
+     * Field input catatan opsional.
+     * Tombol submit utama: Memvalidasi nama penerima, foto, dan tanda tangan tidak kosong, mengekspor signature via `controller.toPngBytes()`, dan memanggil callback `onSubmit`.
+   - Buat `lib/features/driver/widgets/stop_failure_dialog.dart`:
+     * Dialog pemilihan alasan gagal: `TOKO_TUTUP` ("Toko Tutup / Libur"), `PENERIMA_TIDAK_DAPAT_DIHUBUNGI` ("Penerima Tidak Dapat Dihubungi"), `BARANG_RUSAK` ("Barang Rusak / Tidak Sesuai"), `JALAN_TERPUTUS` ("Akses Jalan Terputus / Macet Total"), `LAINNYA` ("Alasan Lainnya").
+     * Textfield input catatan kendala.
+     * Tombol Batal & Kirim Laporan Kendala.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/pod_capture_sheet_test.dart` dan buktikan lulus 100%.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues (bersih dari lint errors).
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 4 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 4.

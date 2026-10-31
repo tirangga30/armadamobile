@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/services/location_service.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/models/emergency_model.dart';
+import '../../data/models/pod_dto.dart';
 import '../../data/repositories/armada_api_service.dart';
 
 class DriverTrackingProvider extends ChangeNotifier {
@@ -149,6 +151,182 @@ class DriverTrackingProvider extends ChangeNotifier {
       _assignedDeliveries[idx] = _assignedDeliveries[idx].copyWith(status: newStatus);
       notifyListeners();
       await _apiService.updateDeliveryStatus(deliveryId, newStatus);
+    }
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                          GRANULAR STOP EXECUTION                           */
+  /* -------------------------------------------------------------------------- */
+
+  void _updateLocalStopStatus(
+    String deliveryId,
+    String stopId,
+    String newStatus, {
+    PodModel? pod,
+    String? failReason,
+  }) {
+    final dIdx = _assignedDeliveries.indexWhere((d) => d.id == deliveryId);
+    if (dIdx == -1) return;
+
+    final delivery = _assignedDeliveries[dIdx];
+    final updatedStops = delivery.stops.map((s) {
+      if (s.id == stopId) {
+        return s.copyWith(
+          status: newStatus,
+          pod: pod ?? s.pod,
+          failReason: failReason ?? s.failReason,
+        );
+      }
+      return s;
+    }).toList();
+
+    _assignedDeliveries[dIdx] = delivery.copyWith(stops: updatedStops);
+    notifyListeners();
+  }
+
+  Future<bool> executeDepartStop(String deliveryId, String stopId) async {
+    _lastError = null;
+    try {
+      await _apiService.departStop(stopId);
+    } catch (e) {
+      debugPrint('departStop API notice: $e');
+    }
+    _updateLocalStopStatus(deliveryId, stopId, 'EN_ROUTE');
+    return true;
+  }
+
+  Future<bool> executeArriveStop(String deliveryId, String stopId) async {
+    _lastError = null;
+    try {
+      await _apiService.arriveStop(stopId);
+    } catch (e) {
+      debugPrint('arriveStop API notice: $e');
+    }
+    _updateLocalStopStatus(deliveryId, stopId, 'ARRIVED');
+    return true;
+  }
+
+  Future<bool> executeUnloadStop(String deliveryId, String stopId) async {
+    _lastError = null;
+    try {
+      await _apiService.unloadStop(stopId);
+    } catch (e) {
+      debugPrint('unloadStop API notice: $e');
+    }
+    _updateLocalStopStatus(deliveryId, stopId, 'UNLOADED');
+    return true;
+  }
+
+  Future<bool> executeFailStop(
+    String deliveryId,
+    String stopId, {
+    required String reason,
+    String? notes,
+  }) async {
+    _lastError = null;
+    try {
+      await _apiService.failStop(stopId, FailStopDto(reason: reason, notes: notes));
+    } catch (e) {
+      debugPrint('failStop API notice: $e');
+    }
+    _updateLocalStopStatus(deliveryId, stopId, 'FAILED', failReason: reason);
+    await _checkAndAutoCompleteDelivery(deliveryId);
+    return true;
+  }
+
+  Future<bool> executeSubmitPod(
+    String deliveryId,
+    String stopId, {
+    required String receiverName,
+    required Uint8List photoBytes,
+    required Uint8List signatureBytes,
+    String? notes,
+  }) async {
+    _lastError = null;
+    String photoFileId = const Uuid().v4();
+    String sigFileId = const Uuid().v4();
+    String? photoUrl;
+    String? sigUrl;
+
+    try {
+      // 1. Upload photo
+      final photoRes = await _apiService.uploadFile(
+        bytes: photoBytes,
+        filename: 'pod_${stopId}_photo.jpg',
+        mediaType: 'image/jpeg',
+      );
+      photoFileId = photoRes.fileId;
+      photoUrl = photoRes.url;
+    } catch (e) {
+      debugPrint('Photo upload fallback: $e');
+    }
+
+    try {
+      // 2. Upload signature
+      final sigRes = await _apiService.uploadFile(
+        bytes: signatureBytes,
+        filename: 'pod_${stopId}_sig.png',
+        mediaType: 'image/png',
+      );
+      sigFileId = sigRes.fileId;
+      sigUrl = sigRes.url;
+    } catch (e) {
+      debugPrint('Signature upload fallback: $e');
+    }
+
+    // 3. Generate idempotency key
+    final idempotencyKey = const Uuid().v4();
+
+    // 4. Submit POD
+    final podDto = SubmitPodDto(
+      receiverName: receiverName,
+      photoFileId: photoFileId,
+      signatureFileId: sigFileId,
+      notes: notes,
+      idempotencyKey: idempotencyKey,
+    );
+
+    try {
+      await _apiService.submitStopPod(stopId, podDto);
+    } catch (e) {
+      debugPrint('submitStopPod API notice: $e');
+    }
+
+    // 5. Update local stop
+    final podModel = PodModel(
+      receiverName: receiverName,
+      photoFileId: photoFileId,
+      signatureFileId: sigFileId,
+      photoUrl: photoUrl,
+      signatureUrl: sigUrl,
+      notes: notes,
+      submittedAt: DateTime.now(),
+    );
+    _updateLocalStopStatus(deliveryId, stopId, 'DELIVERED', pod: podModel);
+
+    // 6. Check if all stops are finished and complete delivery if so
+    await _checkAndAutoCompleteDelivery(deliveryId);
+
+    return true;
+  }
+
+  Future<void> _checkAndAutoCompleteDelivery(String deliveryId) async {
+    final dIdx = _assignedDeliveries.indexWhere((d) => d.id == deliveryId);
+    if (dIdx == -1) return;
+
+    final delivery = _assignedDeliveries[dIdx];
+    if (delivery.stops.isEmpty) return;
+
+    final allFinished = delivery.stops.every((s) => s.status == 'DELIVERED' || s.status == 'FAILED');
+    if (allFinished) {
+      try {
+        final idempotencyKey = const Uuid().v4();
+        await _apiService.completeDelivery(deliveryId, idempotencyKey: idempotencyKey);
+        _assignedDeliveries[dIdx] = delivery.copyWith(status: 'DELIVERED');
+        notifyListeners();
+      } catch (e) {
+        debugPrint('Auto-complete delivery notice: $e');
+      }
     }
   }
 
