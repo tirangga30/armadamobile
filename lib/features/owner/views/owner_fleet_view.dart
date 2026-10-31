@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:provider/provider.dart';
 import '../../../core/config/theme.dart';
 import '../../../core/widgets/armada_osm_map.dart';
 import '../../../data/models/fleet_driver_model.dart';
+import '../../../data/models/route_geometry_model.dart';
 import '../../../providers/fleet_provider.dart';
+import '../widgets/route_optimizer_sheet.dart';
 
 class OwnerFleetView extends StatefulWidget {
   const OwnerFleetView({super.key});
@@ -20,6 +22,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
   String _filter = 'ALL';
   String _searchQuery = '';
   bool _isMapExpanded = false;
+  List<Polyline> _routePolylines = [];
 
   // Default Central Warehouse Hub: Cakung Logistics Center, DKI Jakarta
   static const LatLng _centralHubLocation = LatLng(-6.1950, 106.9400);
@@ -80,6 +83,7 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
                     _mapStateKey.currentState?.moveTo(_getFleetCenter(fleet.drivers), 12.0);
                   },
                   markers: _buildOsmMarkers(fleet.drivers),
+                  polylines: _routePolylines,
                   circles: [
                     CircleMarker(
                       point: _centralHubLocation,
@@ -472,10 +476,63 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
                   ),
                 ),
               ),
+              if (driver.currentDeliveryId != null) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _openRouteOptimizer(driver.currentDeliveryId!);
+                    },
+                    icon: const Icon(Icons.alt_route_rounded, size: 18, color: AppTheme.primaryBlue),
+                    label: const Text('Optimasi Rute Delivery (2-Opt)'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppTheme.primaryBlue),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         );
       },
+    );
+  }
+
+  void _openRouteOptimizer(String deliveryId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => RouteOptimizerSheet(
+        deliveryId: deliveryId,
+        currentDistanceM: 14500,
+        currentDurationS: 2200,
+        recommendedDistanceM: 12100,
+        recommendedDurationS: 1800,
+        reorderedStopNames: const ['Warehouse Cakung', 'Toko Sumber Rejeki', 'Supermarket Puri'],
+        onApply: (SelectRouteDto dto) async {
+          setState(() {
+            _routePolylines = [
+              ArmadaOsmMap.buildRoutePolyline(
+                points: const [
+                  LatLng(-6.1950, 106.9400),
+                  LatLng(-6.1800, 106.8500),
+                  LatLng(-6.2088, 106.8456),
+                ],
+              ),
+            ];
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Rute rekomendasi 2-Opt berhasil diterapkan ke pengiriman!'),
+              backgroundColor: AppTheme.statusSuccess,
+            ),
+          );
+        },
+      ),
     );
   }
 

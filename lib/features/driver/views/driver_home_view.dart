@@ -6,6 +6,7 @@ import '../../../core/config/theme.dart';
 import '../../../data/models/delivery_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/driver_tracking_provider.dart';
+import '../../../core/services/navigation_service.dart';
 import '../widgets/pod_capture_sheet.dart';
 import '../widgets/stop_failure_dialog.dart';
 
@@ -521,6 +522,23 @@ class DriverHomeView extends StatelessWidget {
                     color: stopStatusColor,
                   ),
                 ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.navigation_rounded, size: 18, color: AppTheme.primaryBlue),
+                tooltip: 'Navigasi ke Toko (Maps)',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: () {
+                  final lat = stop.latitude ?? -6.2088;
+                  final lng = stop.longitude ?? 106.8456;
+                  NavigationService.launchNavigation(
+                    latitude: lat,
+                    longitude: lng,
+                    destinationName: stop.destinationName,
+                  );
+                },
               ),
             ],
           ),

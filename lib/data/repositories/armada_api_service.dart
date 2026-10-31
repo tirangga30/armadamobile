@@ -7,6 +7,7 @@ import '../models/fleet_driver_model.dart';
 import '../models/emergency_model.dart';
 import '../models/delivery_model.dart';
 import '../models/pod_dto.dart';
+import '../models/route_geometry_model.dart';
 
 class ArmadaApiService {
   final DioClient _client;
@@ -195,6 +196,8 @@ class ArmadaApiService {
             sequence: 1,
             destinationName: 'Warehouse Cakung',
             address: 'Jl. Raya Cakung Cilincing No. 12',
+            latitude: -6.1950,
+            longitude: 106.9400,
             status: 'COMPLETED',
           ),
           DeliveryStop(
@@ -202,6 +205,8 @@ class ArmadaApiService {
             sequence: 2,
             destinationName: 'Retail Hub Sudirman',
             address: 'Jl. Jenderal Sudirman Kav. 21',
+            latitude: -6.2088,
+            longitude: 106.8220,
             status: 'COMPLETED',
           ),
         ],
@@ -225,6 +230,8 @@ class ArmadaApiService {
             sequence: 1,
             destinationName: 'DC Marunda Hub',
             address: 'Kawasan Berikat Marunda Blok B',
+            latitude: -6.1850,
+            longitude: 106.8400,
             status: 'COMPLETED',
           ),
           DeliveryStop(
@@ -232,6 +239,8 @@ class ArmadaApiService {
             sequence: 2,
             destinationName: 'Supermarket Puri Indah',
             address: 'Jl. Puri Indah Raya No. 8',
+            latitude: -6.2088,
+            longitude: 106.8520,
             status: 'PENDING',
           ),
         ],
@@ -255,6 +264,8 @@ class ArmadaApiService {
             sequence: 1,
             destinationName: 'Toko Sumber Rejeki',
             address: 'Jl. Garuda No. 44 Kemayoran',
+            latitude: -6.1601,
+            longitude: 106.8523,
             status: 'PENDING',
           ),
         ],
@@ -262,7 +273,12 @@ class ArmadaApiService {
     ];
 
     if (driverId != null && driverId.isNotEmpty) {
-      return list.where((d) => d.driverId == driverId).toList();
+      final filtered = list.where((d) {
+        if (d.driverId == driverId) return true;
+        if (d.driverId != null && (d.driverId!.startsWith(driverId) || driverId.startsWith(d.driverId!))) return true;
+        return false;
+      }).toList();
+      if (filtered.isNotEmpty) return filtered;
     }
     return list;
   }
@@ -346,6 +362,44 @@ class ArmadaApiService {
           'Idempotency-Key': idempotencyKey,
         },
       ),
+    );
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                             ROUTE OPTIMIZATION                             */
+  /* -------------------------------------------------------------------------- */
+
+  Future<RouteGeometryModel?> getCurrentDeliveryRoute(String deliveryId) async {
+    try {
+      final res = await _client.get('deliveries/$deliveryId/routes/current');
+      final data = res['data'];
+      if (data != null && data is Map<String, dynamic>) {
+        return RouteGeometryModel.fromJson(data);
+      }
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) {
+        debugPrint('Route not yet calculated for delivery $deliveryId');
+      } else {
+        rethrow;
+      }
+    } catch (e) {
+      debugPrint('Notice fetching current route: $e');
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> getRecommendedRoute(String deliveryId, {String provider = 'osrm'}) async {
+    final res = await _client.post(
+      'deliveries/$deliveryId/routes/recommend',
+      queryParameters: {'provider': provider},
+    );
+    return res['data'] ?? res;
+  }
+
+  Future<void> selectDeliveryRoute(String deliveryId, SelectRouteDto dto) async {
+    await _client.post(
+      'deliveries/$deliveryId/routes/select',
+      data: dto.toJson(),
     );
   }
 }

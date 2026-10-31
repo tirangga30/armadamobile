@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import '../config/theme.dart';
 
 /// Reusable OpenStreetMap (OSM) Interactive Map Component for Armada Mobile.
@@ -28,6 +28,89 @@ class ArmadaOsmMap extends StatefulWidget {
     this.overlayBadgeText,
     this.onRecenter,
   });
+
+  /// Build a numbered visual marker representing a delivery stop
+  static Marker buildStopMarker({
+    required int sequence,
+    required String name,
+    required String status,
+    required LatLng position,
+    VoidCallback? onTap,
+  }) {
+    Color markerColor = const Color(0xFF64748B); // Slate default
+    final normalized = status.toUpperCase();
+
+    if (normalized == 'COMPLETED' || normalized == 'DELIVERED') {
+      markerColor = AppTheme.statusSuccess;
+    } else if (normalized == 'EN_ROUTE' || normalized == 'DEPARTED') {
+      markerColor = AppTheme.primaryBlue;
+    } else if (normalized == 'ARRIVED' || normalized == 'UNLOADED' || normalized == 'UNLOADING') {
+      markerColor = const Color(0xFF8B5CF6);
+    } else if (normalized == 'FAILED') {
+      markerColor = AppTheme.statusDanger;
+    }
+
+    return Marker(
+      point: position,
+      width: 44,
+      height: 52,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: markerColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  '$sequence',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            CustomPaint(
+              size: const Size(10, 6),
+              painter: _MarkerTrianglePainter(color: markerColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build a styled Polyline for route visualization
+  static Polyline buildRoutePolyline({
+    required List<LatLng> points,
+    Color color = AppTheme.primaryBlue,
+    double strokeWidth = 4.0,
+    bool isDotted = false,
+  }) {
+    return Polyline(
+      points: points,
+      strokeWidth: strokeWidth,
+      color: color,
+      borderColor: const Color(0xFF1E3A8A).withValues(alpha: 0.8),
+      borderStrokeWidth: 1.0,
+      pattern: isDotted ? const StrokePattern.dotted() : const StrokePattern.solid(),
+    );
+  }
 
   @override
   State<ArmadaOsmMap> createState() => ArmadaOsmMapState();
@@ -228,4 +311,28 @@ class ArmadaOsmMapState extends State<ArmadaOsmMap> {
       ),
     );
   }
+}
+
+class _MarkerTrianglePainter extends CustomPainter {
+  final Color color;
+
+  const _MarkerTrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

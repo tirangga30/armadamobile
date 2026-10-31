@@ -1,14 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:provider/provider.dart';
 import '../../../core/config/theme.dart';
 import '../../../core/widgets/armada_osm_map.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/driver_tracking_provider.dart';
 
-class DriverTrackingView extends StatelessWidget {
+class DriverTrackingView extends StatefulWidget {
   const DriverTrackingView({super.key});
+
+  @override
+  State<DriverTrackingView> createState() => _DriverTrackingViewState();
+}
+
+class _DriverTrackingViewState extends State<DriverTrackingView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthProvider>().user;
+      final tracking = context.read<DriverTrackingProvider>();
+      if (tracking.assignedDeliveries.isEmpty) {
+        tracking.loadDriverDeliveries(driverId: user?.effectiveDriverId);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +38,69 @@ class DriverTrackingView extends StatelessWidget {
     final lng = pos?.longitude ?? 106.8456;
     final accuracy = pos?.accuracy ?? 5.0;
     final speed = (pos?.speed ?? 0.0) * 3.6; // m/s to km/h
-    final driverLatLng = LatLng(lat, lng);
+
+    // Emulator detection / coordinate normalization (emulator returns California GPS)
+    final isOutsideIndonesia = lat > 10 || lat < -15 || lng < 95 || lng > 145;
+    final displayDriverLatLng = isOutsideIndonesia ? const LatLng(-6.1980, 106.8450) : LatLng(lat, lng);
+
+    // Active delivery stops and route polyline
+    final List<Polyline> polylines = [];
+    final List<Marker> mapMarkers = [];
+
+    // Driver's self live GPS marker
+    mapMarkers.add(
+      Marker(
+        point: displayDriverLatLng,
+        width: 60,
+        height: 60,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.5),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: const Icon(Icons.navigation_rounded, color: Colors.white, size: 22),
+          ),
+        ),
+      ),
+    );
+
+    if (tracking.assignedDeliveries.isNotEmpty) {
+      final activeDelivery = tracking.assignedDeliveries.firstWhere(
+        (d) => d.status == 'EN_ROUTE' || d.status == 'ACCEPTED' || d.status == 'ASSIGNED',
+        orElse: () => tracking.assignedDeliveries.first,
+      );
+
+      if (activeDelivery.stops.isNotEmpty) {
+        final List<LatLng> routePoints = [displayDriverLatLng];
+        for (final s in activeDelivery.stops) {
+          if (s.latitude != null && s.longitude != null) {
+            final pt = LatLng(s.latitude!, s.longitude!);
+            routePoints.add(pt);
+            mapMarkers.add(
+              ArmadaOsmMap.buildStopMarker(
+                sequence: s.sequence,
+                name: s.destinationName,
+                status: s.status,
+                position: pt,
+              ),
+            );
+          }
+        }
+        if (routePoints.length > 1) {
+          polylines.add(ArmadaOsmMap.buildRoutePolyline(points: routePoints));
+        }
+      }
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -133,12 +213,12 @@ class DriverTrackingView extends StatelessWidget {
           // Real Interactive OpenStreetMap
           ArmadaOsmMap(
             height: 230,
-            initialCenter: driverLatLng,
-            initialZoom: 15.0,
+            initialCenter: displayDriverLatLng,
+            initialZoom: 13.0,
             overlayBadgeText: tracking.isTracking ? 'GPS LIVE • OSM PUBLIK' : 'GPS STANDBY',
             circles: [
               CircleMarker(
-                point: driverLatLng,
+                point: displayDriverLatLng,
                 radius: (accuracy < 12 ? 14.0 : accuracy).clamp(12.0, 50.0).toDouble(),
                 useRadiusInMeter: false,
                 color: AppTheme.primaryBlue.withValues(alpha: 0.15),
@@ -146,31 +226,8 @@ class DriverTrackingView extends StatelessWidget {
                 borderStrokeWidth: 1.5,
               ),
             ],
-            markers: [
-              Marker(
-                point: driverLatLng,
-                width: 60,
-                height: 60,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryBlue.withValues(alpha: 0.5),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.navigation_rounded, color: Colors.white, size: 22),
-                  ),
-                ),
-              ),
-            ],
+            polylines: polylines,
+            markers: mapMarkers,
           ),
 
           const SizedBox(height: 20),

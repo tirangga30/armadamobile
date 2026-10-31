@@ -1,0 +1,88 @@
+[DIRECTIVE: EXECUTE TASK 6 OF PHASE 2 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 6: Route Geometry Model & Recommendation DTOs** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/route_geometry_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:latlong2/latlong.dart';
+   import 'package:armada_mobile/data/models/route_geometry_model.dart';
+
+   void main() {
+     test('RouteGeometryModel correctly converts GeoJSON [lng, lat] to LatLng(lat, lng)', () {
+       final json = {
+         'routeId': 'route-001',
+         'deliveryId': 'del-001',
+         'version': 2,
+         'source': 'RECOMMENDED_2OPT',
+         'totalDistanceMeters': 14250.5,
+         'estimatedDurationSeconds': 1800,
+         'polylineGeojson': {
+           'type': 'LineString',
+           'coordinates': [
+             [106.8272, -6.1754],
+             [106.8456, -6.2088],
+           ],
+         },
+       };
+
+       final model = RouteGeometryModel.fromJson(json);
+       expect(model.routeId, 'route-001');
+       expect(model.deliveryId, 'del-001');
+       expect(model.source, 'RECOMMENDED_2OPT');
+       expect(model.polylinePoints.length, 2);
+       expect(model.polylinePoints[0].latitude, -6.1754);
+       expect(model.polylinePoints[0].longitude, 106.8272);
+       expect(model.polylinePoints[1].latitude, -6.2088);
+       expect(model.polylinePoints[1].longitude, 106.8456);
+       expect(model.totalDistanceMeters, 14250.5);
+       expect(model.estimatedDurationSeconds, 1800);
+     });
+
+     test('SelectRouteDto serializes correctly with recommendedSequence', () {
+       final dto = SelectRouteDto(
+         routeVersion: 2,
+         source: 'RECOMMENDED_2OPT',
+         recommendedSequence: [
+           {'stopId': 'st-1', 'sequence': 1},
+           {'stopId': 'st-2', 'sequence': 2},
+         ],
+       );
+
+       final json = dto.toJson();
+       expect(json['routeVersion'], 2);
+       expect(json['source'], 'RECOMMENDED_2OPT');
+       expect(json['recommendedSequence'].length, 2);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/route_geometry_test.dart` dan buktikan terjadi error kompilasi karena `route_geometry_model.dart` belum ada.
+3. **Step 3 (Green - Implementation):**
+   - Buat file `lib/data/models/route_geometry_model.dart`:
+     * Definisikan `RouteGeometryModel`:
+       - `final String routeId;`
+       - `final String deliveryId;`
+       - `final int version;`
+       - `final String source;` // MANUAL, RECOMMENDED_2OPT, AUTOMATIC
+       - `final double totalDistanceMeters;`
+       - `final int estimatedDurationSeconds;`
+       - `final List<LatLng> polylinePoints;`
+       - `final Map<String, dynamic>? rawGeoJson;`
+       - Konstruktor & `factory RouteGeometryModel.fromJson(Map<String, dynamic> json)`:
+         * HATI-HATI ATURAN KRITIS REVIEW FOCUS #2: GeoJSON coordinates selalu berurutan `[longitude, latitude]`. Konversikan secara ketat ke `LatLng(coord[1], coord[0])`!
+         * Tangani jika `polylineGeojson` berupa String ter-enkode atau Map.
+         * Tangani fallback default jika koordinat kosong.
+     * Definisikan `SelectRouteDto`:
+       - `final int routeVersion;`
+       - `final String source;`
+       - `final List<Map<String, dynamic>> recommendedSequence;`
+       - `toJson()` method.
+     * Definisikan `RecommendRouteResponse` jika diperlukan untuk parsing respons rekomendasi OSRM/2-Opt dari backend.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/route_geometry_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 6 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 6.

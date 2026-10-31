@@ -335,7 +335,7 @@ git commit -m "feat(driver): integrate granular stop transitions and POD in Driv
 - Consumes: `latlong2/latlong.dart`
 - Produces: `RouteGeometryModel`, `SelectRouteDto`, `RecommendRouteResponse`.
 
-- [ ] **Step 1: Write unit test in `test/route_geometry_test.dart`**
+- [x] **Step 1: Write unit test in `test/route_geometry_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -368,18 +368,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/route_geometry_test.dart`
 Expected: FAIL with "route_geometry_model.dart not found".
 
-- [ ] **Step 3: Implement `RouteGeometryModel`, `SelectRouteDto` in `lib/data/models/route_geometry_model.dart`**
+- [x] **Step 3: Implement `RouteGeometryModel`, `SelectRouteDto` in `lib/data/models/route_geometry_model.dart`**
 Implement constructor, JSON parsing from `/v1/deliveries/:id/routes/current`, and serialization for `/v1/deliveries/:id/routes/select`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/route_geometry_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/data/models/route_geometry_model.dart test/route_geometry_test.dart
 git commit -m "feat(route): create RouteGeometryModel and GeoJSON parsing"
@@ -399,7 +399,7 @@ git commit -m "feat(route): create RouteGeometryModel and GeoJSON parsing"
   - `Future<Map<String, dynamic>> getRecommendedRoute(String deliveryId, {String provider = 'osrm'})`
   - `Future<void> selectDeliveryRoute(String deliveryId, SelectRouteDto dto)`
 
-- [ ] **Step 1: Write failing test in `test/route_api_test.dart`**
+- [x] **Step 1: Write failing test in `test/route_api_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/data/repositories/armada_api_service.dart';
@@ -419,21 +419,21 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/route_api_test.dart`
 Expected: FAIL with methods not defined.
 
-- [ ] **Step 3: Implement route API methods in `lib/data/repositories/armada_api_service.dart`**
+- [x] **Step 3: Implement route API methods in `lib/data/repositories/armada_api_service.dart`**
 Connect:
 - `GET /v1/deliveries/:id/routes/current`
 - `POST /v1/deliveries/:id/routes/recommend?provider=osrm`
 - `POST /v1/deliveries/:id/routes/select`
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/route_api_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/data/repositories/armada_api_service.dart test/route_api_test.dart
 git commit -m "feat(api): implement route geometry and optimization endpoints"
@@ -450,7 +450,7 @@ git commit -m "feat(api): implement route geometry and optimization endpoints"
 - Consumes: `RouteGeometryModel`, `DeliveryStop`, `Polyline`, `Marker`.
 - Produces: `ArmadaOsmMap` supporting route polyline display and numbered stop markers.
 
-- [ ] **Step 1: Write widget test in `test/osm_map_test.dart`**
+- [x] **Step 1: Write widget test in `test/osm_map_test.dart`**
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -479,18 +479,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails/passes**
+- [x] **Step 2: Run test to verify it fails/passes**
 Run: `flutter test test/osm_map_test.dart`
 Expected: PASS or verify existing capability.
 
-- [ ] **Step 3: Add numbered stop marker builder helper `ArmadaOsmMap.buildStopMarker(...)`**
+- [x] **Step 3: Add numbered stop marker builder helper `ArmadaOsmMap.buildStopMarker(...)`**
 Create reusable method that renders numbered circle badges (`1`, `2`, `3`) with color coding based on status (`PENDING`, `DEPARTED`, `ARRIVED`, `DELIVERED`, `FAILED`).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/osm_map_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/core/widgets/armada_osm_map.dart test/osm_map_test.dart
 git commit -m "feat(map): enhance ArmadaOsmMap with numbered stop markers and route polyline"
@@ -507,7 +507,7 @@ git commit -m "feat(map): enhance ArmadaOsmMap with numbered stop markers and ro
 - Consumes: `url_launcher`
 - Produces: `NavigationService.openExternalNavigation({required double latitude, required double longitude, String? destinationName})`.
 
-- [ ] **Step 1: Write unit test in `test/navigation_service_test.dart`**
+- [x] **Step 1: Write unit test in `test/navigation_service_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/core/services/navigation_service.dart';
@@ -523,18 +523,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/navigation_service_test.dart`
 Expected: FAIL with "navigation_service.dart not found".
 
-- [ ] **Step 3: Implement `NavigationService` in `lib/core/services/navigation_service.dart`**
+- [x] **Step 3: Implement `NavigationService` in `lib/core/services/navigation_service.dart`**
 Implement URI builders and `openExternalNavigation` using `launchUrl(uri, mode: LaunchMode.externalApplication)` with fallback options.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/navigation_service_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/core/services/navigation_service.dart test/navigation_service_test.dart
 git commit -m "feat(nav): implement external turn-by-turn navigation service"
@@ -553,7 +553,7 @@ git commit -m "feat(nav): implement external turn-by-turn navigation service"
 - Consumes: `ArmadaApiService`, `RouteGeometryModel`, `SelectRouteDto`.
 - Produces: `RouteOptimizerSheet` widget.
 
-- [ ] **Step 1: Write widget test in `test/route_optimizer_sheet_test.dart`**
+- [x] **Step 1: Write widget test in `test/route_optimizer_sheet_test.dart`**
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -580,18 +580,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/route_optimizer_sheet_test.dart`
 Expected: FAIL with "route_optimizer_sheet.dart not found".
 
-- [ ] **Step 3: Implement `RouteOptimizerSheet` and hook into Owner & Driver views**
+- [x] **Step 3: Implement `RouteOptimizerSheet` and hook into Owner & Driver views**
 In `route_optimizer_sheet.dart`: Compare distance and time savings, list reordered stops, and invoke `onApply`. Hook route fetching into `DriverTrackingView` and `OwnerFleetView` so that polyline overlays onto the map when an active delivery is selected.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/route_optimizer_sheet_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/features/owner/widgets/route_optimizer_sheet.dart lib/features/owner/views/owner_fleet_view.dart lib/features/driver/views/driver_tracking_view.dart test/route_optimizer_sheet_test.dart
 git commit -m "feat(ui): add route optimization bottom sheet and integrate polyline into map views"

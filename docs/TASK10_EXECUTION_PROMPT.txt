@@ -1,0 +1,57 @@
+[DIRECTIVE: EXECUTE TASK 10 OF PHASE 2 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 10: Route Recommendation & Selection UI (Owner & Driver)** guna menuntaskan seluruh **FASE 2**.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/route_optimizer_sheet_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/features/owner/widgets/route_optimizer_sheet.dart';
+   import 'package:armada_mobile/data/models/route_geometry_model.dart';
+
+   void main() {
+     testWidgets('RouteOptimizerSheet shows recommendation comparison and apply button', (tester) async {
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: RouteOptimizerSheet(
+               deliveryId: 'del-001',
+               currentDistanceM: 15000,
+               currentDurationS: 2100,
+               recommendedDistanceM: 12500,
+               recommendedDurationS: 1750,
+               reorderedStopNames: const ['Warehouse Cakung', 'Toko Sumber Rejeki', 'Supermarket Puri'],
+               onApply: (SelectRouteDto dto) async {},
+             ),
+           ),
+         ),
+       );
+
+       expect(find.text('Optimasi Rute (2-Opt TSP)'), findsOneWidget);
+       expect(find.text('Terapkan Rute Rekomendasi'), findsOneWidget);
+       expect(find.text('Supermarket Puri'), findsOneWidget);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/route_optimizer_sheet_test.dart` dan buktikan terjadi error kompilasi karena `route_optimizer_sheet.dart` belum ada.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/features/owner/widgets/route_optimizer_sheet.dart`:
+     * Modal bottom sheet dengan header: "Optimasi Rute (2-Opt TSP)".
+     * Komparasi metrik: Jarak (km) & Waktu tempuh (menit) sebelum vs sesudah optimasi, beserta lencana persentase efisiensi (misal "-16.7% lebih hemat").
+     * Daftar urutan titik singgah hasil kalkulasi TSP (1..N).
+     * Tombol aksi: "Terapkan Rute Rekomendasi" yang memanggil callback `onApply(SelectRouteDto(...))`.
+   - Perbarui `lib/features/driver/views/driver_home_view.dart`:
+     * Pada setiap kartu stop (`_buildStopItem`), tambahkan tombol cepat "Navigasi (Maps)" dengan ikon arah panah / navigasi yang memanggil `NavigationService.launchNavigation(latitude: stop.latitude ?? -6.2088, longitude: stop.longitude ?? 106.8456, destinationName: stop.destinationName)`.
+   - Perbarui `lib/features/driver/views/driver_tracking_view.dart`:
+     * Ambil rute aktif atau sambungkan polyline stop delivery aktif ke dalam `polylines:` di widget `ArmadaOsmMap` sehingga driver dapat melihat garis jalur pengantaran di atas peta.
+   - Perbarui `lib/features/owner/views/owner_fleet_view.dart`:
+     * Tambahkan dukungan visualisasi polyline rute pada peta radar Owner ketika armada pengiriman dipilih, serta tombol pemicu `RouteOptimizerSheet`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/route_optimizer_sheet_test.dart` dan buktikan lulus.
+   - Jalankan seluruh suite test (`flutter test`) dan pastikan 100% lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues (bersih dari lint/compilation errors).
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 10 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil penuntasan FASE 2.

@@ -1,0 +1,40 @@
+[DIRECTIVE: EXECUTE TASK 7 OF PHASE 2 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 7: Route API Methods in ArmadaApiService** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/route_api_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/repositories/armada_api_service.dart';
+   import 'package:armada_mobile/core/network/dio_client.dart';
+   import 'package:armada_mobile/core/storage/secure_storage_service.dart';
+
+   void main() {
+     test('ArmadaApiService includes route optimization and fetching methods', () {
+       final storage = SecureStorageService();
+       final dio = DioClient(storageService: storage);
+       final api = ArmadaApiService(client: dio);
+
+       expect(api.getCurrentDeliveryRoute, isNotNull);
+       expect(api.getRecommendedRoute, isNotNull);
+       expect(api.selectDeliveryRoute, isNotNull);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/route_api_test.dart` dan buktikan terjadi error kompilasi karena metode-metode tersebut belum terdefinisi di `ArmadaApiService`.
+3. **Step 3 (Green - Implementation):**
+   - Perbarui `lib/data/repositories/armada_api_service.dart`:
+     * Tambahkan `Future<RouteGeometryModel?> getCurrentDeliveryRoute(String deliveryId)`:
+       Memanggil `GET deliveries/$deliveryId/routes/current`. Jika sukses dan ada data geometri polyline GeoJSON, parse dengan `RouteGeometryModel.fromJson(data)`. Jika terjadi error 404 (route belum dihitung backend), berikan fallback kalkulasi rute titik garis lurus (direct waypoints polyline) dari stops yang ada pada delivery tersebut agar peta tetap dapat merender polyline garis rute di UI.
+     * Tambahkan `Future<Map<String, dynamic>> getRecommendedRoute(String deliveryId, {String provider = 'osrm'})`:
+       Memanggil `POST deliveries/$deliveryId/routes/recommend?provider=$provider`. Mengembalikan Map data perbandingan rute.
+     * Tambahkan `Future<void> selectDeliveryRoute(String deliveryId, SelectRouteDto dto)`:
+       Memanggil `POST deliveries/$deliveryId/routes/select` dengan body `dto.toJson()`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/route_api_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 7 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 7.

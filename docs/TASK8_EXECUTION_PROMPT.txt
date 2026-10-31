@@ -1,0 +1,91 @@
+[DIRECTIVE: EXECUTE TASK 8 OF PHASE 2 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 8: Polyline Layer & Numbered Stop Markers in ArmadaOsmMap** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/osm_map_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:flutter_map/flutter_map.dart';
+   import 'package:latlong2/latlong.dart';
+   import 'package:armada_mobile/core/widgets/armada_osm_map.dart';
+
+   void main() {
+     testWidgets('ArmadaOsmMap accepts polylines and renders PolylineLayer', (tester) async {
+       final points = [const LatLng(-6.2, 106.8), const LatLng(-6.21, 106.81)];
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: ArmadaOsmMap(
+               initialCenter: const LatLng(-6.2, 106.8),
+               polylines: [
+                 Polyline(points: points, strokeWidth: 4.0, color: Colors.blue),
+               ],
+             ),
+           ),
+         ),
+       );
+
+       expect(find.byType(PolylineLayer), findsOneWidget);
+     });
+
+     test('ArmadaOsmMap.buildStopMarker creates numbered marker with correct coordinates', () {
+       final marker = ArmadaOsmMap.buildStopMarker(
+         sequence: 1,
+         name: 'Toko Sumber Rejeki',
+         status: 'PENDING',
+         position: const LatLng(-6.2088, 106.8456),
+       );
+
+       expect(marker.point.latitude, -6.2088);
+       expect(marker.point.longitude, 106.8456);
+       expect(marker.width, greaterThan(30));
+     });
+
+     test('ArmadaOsmMap.buildRoutePolyline creates Polyline with given points', () {
+       final polyline = ArmadaOsmMap.buildRoutePolyline(
+         points: [const LatLng(-6.2, 106.8), const LatLng(-6.21, 106.81)],
+         color: Colors.blue,
+       );
+
+       expect(polyline.points.length, 2);
+       expect(polyline.strokeWidth, 4.0);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/osm_map_test.dart` dan buktikan terjadi error kompilasi karena metode statis `buildStopMarker` dan `buildRoutePolyline` belum ada di `ArmadaOsmMap`.
+3. **Step 3 (Green - Implementation):**
+   - Perbarui `lib/core/widgets/armada_osm_map.dart`:
+     * Tambahkan helper statis:
+       ```dart
+       static Marker buildStopMarker({
+         required int sequence,
+         required String name,
+         required String status,
+         required LatLng position,
+         VoidCallback? onTap,
+       })
+       ```
+       Renders numbered badge (1, 2, 3...) with clean design, colored according to status:
+       - `COMPLETED` / `DELIVERED`: `AppTheme.statusSuccess`
+       - `EN_ROUTE` / `DEPARTED`: `AppTheme.primaryBlue`
+       - `ARRIVED` / `UNLOADED`: Color(0xFF8B5CF6) / purple
+       - `FAILED`: `AppTheme.statusDanger`
+       - `PENDING` / default: Color(0xFF64748B) / slate grey
+     * Tambahkan helper statis:
+       ```dart
+       static Polyline buildRoutePolyline({
+         required List<LatLng> points,
+         Color color = AppTheme.primaryBlue,
+         double strokeWidth = 4.0,
+         bool isDotted = false,
+       })
+       ```
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/osm_map_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 8 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 8.
