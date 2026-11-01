@@ -1,0 +1,70 @@
+[DIRECTIVE: EXECUTE TASK 16 OF PHASE 4 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 16: Realtime Envelope & Notification Models** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/realtime_models_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/models/realtime_envelope.dart';
+   import 'package:armada_mobile/data/models/notification_model.dart';
+
+   void main() {
+     test('RealtimeEnvelope parses incoming driver.location.updated event', () {
+       final json = {
+         'eventId': 'ev-01',
+         'event': 'driver.location.updated',
+         'version': 1,
+         'timestamp': '2026-10-31T08:30:00.000Z',
+         'payload': {
+           'driverId': 'drv-123',
+           'latitude': -6.2001,
+           'longitude': 106.8162,
+           'speedMps': 12.5,
+           'headingDeg': 90.0,
+           'recordedAt': '2026-10-31T08:30:00.000Z',
+         },
+       };
+
+       final env = RealtimeEnvelope.fromJson(
+         json,
+         (p) => RealtimeLocationPayload.fromJson(p as Map<String, dynamic>),
+       );
+       expect(env.event, 'driver.location.updated');
+       expect(env.payload.driverId, 'drv-123');
+       expect(env.payload.latitude, -6.2001);
+       expect(env.payload.longitude, 106.8162);
+     });
+
+     test('NotificationModel parses notification object from backend', () {
+       final notif = NotificationModel.fromJson({
+         'id': 'notif-01',
+         'type': 'EMERGENCY_ALERT',
+         'title': 'Peringatan Darurat!',
+         'body': 'Driver Pak Budi memicu SOS',
+         'status': 'SENT',
+         'createdAt': '2026-10-31T08:30:00.000Z',
+       });
+       expect(notif.isRead, isFalse);
+       expect(notif.type, 'EMERGENCY_ALERT');
+       expect(notif.title, 'Peringatan Darurat!');
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/realtime_models_test.dart` dan buktikan terjadi error kompilasi karena model belum ada.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/data/models/realtime_envelope.dart`:
+     * Generic class `RealtimeEnvelope<T>` (`eventId`, `event`, `version`, `timestamp`, `T payload`, `fromJson`, `toJson`).
+     * Class `RealtimeLocationPayload` (`driverId`, `latitude`, `longitude`, `speedMps`, `headingDeg`, `accuracyM`, `recordedAt`, `fromJson`, `toJson`).
+     * Class `RealtimeDeliveryStatusPayload` (`deliveryId`, `previousStatus`, `newStatus`, `updatedAt`, `actor`, `fromJson`, `toJson`).
+     * Class `RealtimeEmergencyPayload` (`emergencyId`, `driverId`, `driverName`, `emergencyType`, `latitude`, `longitude`, `note`, `triggeredAt`, `fromJson`, `toJson`).
+   - Buat `lib/data/models/notification_model.dart`:
+     * Class `NotificationModel` (`id`, `type`, `title`, `body`, `status`, `data`, `createdAt`, `readAt`, getter `isRead`, `fromJson`, `toJson`).
+     * Class `NotificationListResponse` (`items`, `total`, `unreadCount`, `fromJson`).
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/realtime_models_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 16 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 16.

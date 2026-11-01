@@ -908,7 +908,7 @@ git commit -m "feat(owner): integrate delivery creation, assignment and detail v
 - Consumes: None (Core data layer)
 - Produces: `RealtimeEnvelope<T>`, `RealtimeLocationPayload`, `NotificationModel`, `NotificationListResponse`.
 
-- [ ] **Step 1: Write unit test in `test/realtime_models_test.dart`**
+- [x] **Step 1: Write unit test in `test/realtime_models_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/data/models/realtime_envelope.dart';
@@ -952,18 +952,18 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/realtime_models_test.dart`
 Expected: FAIL with models not found.
 
-- [ ] **Step 3: Implement `RealtimeEnvelope` and `NotificationModel` in `lib/data/models/`**
+- [x] **Step 3: Implement `RealtimeEnvelope` and `NotificationModel` in `lib/data/models/`**
 Define classes, payload DTOs, and serialization logic matching backend specification in `06-API-REALTIME.md` and `API-ENDPOINTS.md`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/realtime_models_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/data/models/realtime_envelope.dart lib/data/models/notification_model.dart test/realtime_models_test.dart
 git commit -m "feat(realtime): create realtime envelope and notification data models"
@@ -980,7 +980,7 @@ git commit -m "feat(realtime): create realtime envelope and notification data mo
 - Consumes: `socket_io_client`, `SecureStorageService`.
 - Produces: `SocketRealtimeService` (connect, disconnect, joinRoom, leaveRoom, event streams).
 
-- [ ] **Step 1: Write unit test in `test/socket_service_test.dart`**
+- [x] **Step 1: Write unit test in `test/socket_service_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/core/services/socket_realtime_service.dart';
@@ -999,20 +999,20 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/socket_service_test.dart`
 Expected: FAIL with "socket_realtime_service.dart not found".
 
-- [ ] **Step 3: Implement `SocketRealtimeService` in `lib/core/services/socket_realtime_service.dart`**
+- [x] **Step 3: Implement `SocketRealtimeService` in `lib/core/services/socket_realtime_service.dart`**
 Initialize `IO.io('${AppConfig.wsBaseUrl}/v1/realtime', OptionBuilder().setTransports(['websocket']).setAuth({'token': 'Bearer $token'}).build())`.
 Expose broadcast `StreamController`s for `driver.location.updated`, `delivery.status_changed`, and `emergency.triggered`.
 Implement automatic room join on connection and reconnection handlers.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/socket_service_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/core/services/socket_realtime_service.dart test/socket_service_test.dart
 git commit -m "feat(realtime): implement SocketRealtimeService for Socket.IO gateway"
@@ -1031,7 +1031,7 @@ git commit -m "feat(realtime): implement SocketRealtimeService for Socket.IO gat
   - `Future<NotificationListResponse> getNotifications({int limit = 20, int offset = 0})`
   - `Future<void> markNotificationAsRead(String notificationId)`
 
-- [ ] **Step 1: Write failing test in `test/notification_api_test.dart`**
+- [x] **Step 1: Write failing test in `test/notification_api_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/data/repositories/armada_api_service.dart';
@@ -1050,19 +1050,19 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/notification_api_test.dart`
 Expected: FAIL with methods not defined.
 
-- [ ] **Step 3: Implement methods in `lib/data/repositories/armada_api_service.dart`**
+- [x] **Step 3: Implement methods in `lib/data/repositories/armada_api_service.dart`**
 - `getNotifications`: `GET /v1/notifications?limit=:limit&offset=:offset`
 - `markNotificationAsRead`: `PATCH /v1/notifications/:id/read`
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/notification_api_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/data/repositories/armada_api_service.dart test/notification_api_test.dart
 git commit -m "feat(api): implement in-app notification endpoints"
@@ -1081,7 +1081,7 @@ git commit -m "feat(api): implement in-app notification endpoints"
 - Consumes: `SocketRealtimeService`, `FleetProvider`, `DriverTrackingProvider`.
 - Produces: Real-time driver marker movement without REST polling, live delivery status updates.
 
-- [ ] **Step 1: Write unit test in `test/provider_stream_integration_test.dart`**
+- [x] **Step 1: Write unit test in `test/provider_stream_integration_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/providers/fleet_provider.dart';
@@ -1103,20 +1103,20 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/provider_stream_integration_test.dart`
 Expected: FAIL with constructor parameter mismatch.
 
-- [ ] **Step 3: Update `FleetProvider` and `DriverTrackingProvider` to listen to socket streams**
+- [x] **Step 3: Update `FleetProvider` and `DriverTrackingProvider` to listen to socket streams**
 In `FleetProvider`: Listen to `socketService.locationStream`. When a location event arrives, update the driver's coordinates in the local list and notify listeners to re-render the marker at its new position smoothly.
 In `DriverTrackingProvider`: Listen to `socketService.deliveryStatusStream` and update local state.
 In `main.dart`: Inject `SocketRealtimeService` into MultiProvider.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/provider_stream_integration_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/providers/fleet_provider.dart lib/providers/driver_tracking_provider.dart lib/main.dart test/provider_stream_integration_test.dart
 git commit -m "feat(realtime): connect SocketRealtimeService to FleetProvider and DriverTrackingProvider"
@@ -1136,7 +1136,7 @@ git commit -m "feat(realtime): connect SocketRealtimeService to FleetProvider an
 - Consumes: `NotificationModel`, `SocketRealtimeService`, `ArmadaApiService`.
 - Produces: `NotificationCenterView`, `EmergencyAlertBanner`.
 
-- [ ] **Step 1: Write widget test in `test/notification_center_view_test.dart`**
+- [x] **Step 1: Write widget test in `test/notification_center_view_test.dart`**
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1155,20 +1155,20 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/notification_center_view_test.dart`
 Expected: FAIL with "notification_center_view.dart not found".
 
-- [ ] **Step 3: Implement `NotificationCenterView` and `EmergencyAlertBanner`**
+- [x] **Step 3: Implement `NotificationCenterView` and `EmergencyAlertBanner`**
 In `notification_center_view.dart`: Pull-to-refresh list of notifications, tap to mark as read, semantic icon based on notification type.
 In `emergency_alert_banner.dart`: Prominent rose/red floating banner that appears when `socketService.emergencyStream` emits an event, displaying driver name, emergency type, and "Lihat di Peta" button.
 In `owner_shell.dart` and `driver_shell.dart`: Include notification bell icon with unread count badge in AppBar, and mount `EmergencyAlertBanner` at top of view stack.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 Run: `flutter test test/notification_center_view_test.dart`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add lib/features/notifications/notification_center_view.dart lib/core/widgets/emergency_alert_banner.dart lib/features/owner/owner_shell.dart lib/features/driver/driver_shell.dart test/notification_center_view_test.dart
 git commit -m "feat(notifications): add in-app NotificationCenterView and floating EmergencyAlertBanner"
@@ -1185,7 +1185,7 @@ git commit -m "feat(notifications): add in-app NotificationCenterView and floati
 - Consumes: All modules from Phase 1 through Phase 4.
 - Produces: 100% passing test suite and clean `flutter analyze`.
 
-- [ ] **Step 1: Write end-to-end flow test in `test/full_system_smoke_test.dart`**
+- [x] **Step 1: Write end-to-end flow test in `test/full_system_smoke_test.dart`**
 ```dart
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
@@ -1209,15 +1209,15 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run linter verification**
+- [x] **Step 2: Run linter verification**
 Run: `flutter analyze`
 Expected: "No issues found!".
 
-- [ ] **Step 3: Run all unit and widget tests**
+- [x] **Step 3: Run all unit and widget tests**
 Run: `flutter test`
 Expected: All tests pass.
 
-- [ ] **Step 4: Final commit**
+- [x] **Step 4: Final commit**
 ```bash
 git add test/full_system_smoke_test.dart
 git commit -m "chore(release): complete full frontend mobile integration test verification"

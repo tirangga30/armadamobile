@@ -6,6 +6,9 @@ class AppConfig {
   /// Live Production API Base URL
   static const String apiBaseUrl = 'https://armada-api.prizftm.my.id/v1/';
 
+  /// Live Production WebSocket Gateway Base URL
+  static const String wsBaseUrl = 'wss://armada-api.prizftm.my.id';
+
   /// Network Timeout Configurations
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);

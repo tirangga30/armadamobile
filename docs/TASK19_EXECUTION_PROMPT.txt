@@ -1,0 +1,49 @@
+[DIRECTIVE: EXECUTE TASK 19 OF PHASE 4 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 19: Stream Integration into Providers (FleetProvider & DriverTrackingProvider)** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/provider_stream_integration_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/providers/fleet_provider.dart';
+   import 'package:armada_mobile/data/repositories/armada_api_service.dart';
+   import 'package:armada_mobile/core/network/dio_client.dart';
+   import 'package:armada_mobile/core/storage/secure_storage_service.dart';
+   import 'package:armada_mobile/core/services/socket_realtime_service.dart';
+
+   void main() {
+     test('FleetProvider can ingest SocketRealtimeService', () {
+       final storage = SecureStorageService();
+       final dio = DioClient(storageService: storage);
+       final api = ArmadaApiService(client: dio);
+       final socketService = SocketRealtimeService(storageService: storage);
+       final provider = FleetProvider(apiService: api, socketService: socketService);
+
+       expect(provider, isNotNull);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/provider_stream_integration_test.dart` dan buktikan terjadi error kompilasi karena `FleetProvider` belum menerima parameter `socketService`.
+3. **Step 3 (Green - Implementation):**
+   - Perbarui `lib/providers/fleet_provider.dart`:
+     * Tambahkan `final SocketRealtimeService? _socketService;` ke konstruktor opsional `FleetProvider({required ArmadaApiService apiService, SocketRealtimeService? socketService})`.
+     * Jika `_socketService != null`, listen ke `_socketService.locationStream`:
+       Ketika ada event `RealtimeLocationPayload`, perbarui koordinat driver di list `_drivers` secara seketika dan panggil `notifyListeners()`.
+     * Listen ke `_socketService.emergencyStream`:
+       Ketika ada event `RealtimeEmergencyPayload`, tambahkan alert darurat ke daftar dan panggil `notifyListeners()`.
+     * Batalkan langganan stream pada `dispose()`.
+   - Perbarui `lib/providers/driver_tracking_provider.dart`:
+     * Tambahkan parameter opsional `SocketRealtimeService? socketService`.
+     * Listen ke `socketService.deliveryStatusStream`:
+       Ketika ada event status delivery, perbarui status order pengiriman lokal.
+   - Perbarui `lib/main.dart`:
+     * Daftarkan `Provider<SocketRealtimeService>(create: (ctx) => SocketRealtimeService(storageService: ctx.read<SecureStorageService>()))` di MultiProvider.
+     * Operkan instance `SocketRealtimeService` ke `ChangeNotifierProxyProvider` atau konstruktor `FleetProvider` dan `DriverTrackingProvider`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/provider_stream_integration_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 19 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 19.

@@ -1,0 +1,37 @@
+[DIRECTIVE: EXECUTE TASK 21 OF PHASE 4 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 21: Full System Integration Verification & Smoke Testing** guna menuntaskan seluruh **FASE 4** dan seluruh implementasi Capstone Armada Mobile.
+
+IKUTI 5 LANGKAH VERIFIKASI SECARA DISIPLIN:
+1. **Step 1: Write Full System Smoke Test:**
+   Buat file `test/full_system_smoke_test.dart`:
+   ```dart
+   import 'dart:io';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/core/storage/secure_storage_service.dart';
+   import 'package:armada_mobile/core/network/dio_client.dart';
+   import 'package:armada_mobile/data/repositories/armada_api_service.dart';
+   import 'package:armada_mobile/core/services/socket_realtime_service.dart';
+
+   class _AllowAllHttpOverrides extends HttpOverrides {}
+
+   void main() {
+     HttpOverrides.global = _AllowAllHttpOverrides();
+
+     test('Full system initialization and service dependency graph sanity', () async {
+       final storage = SecureStorageService();
+       final dio = DioClient(storageService: storage);
+       final api = ArmadaApiService(client: dio);
+       final socket = SocketRealtimeService(storageService: storage);
+
+       expect(storage, isNotNull);
+       expect(dio, isNotNull);
+       expect(api, isNotNull);
+       expect(socket, isNotNull);
+       expect(socket.isConnected, isFalse);
+     });
+   }
+   ```
+2. **Step 2: Jalankan `flutter test test/full_system_smoke_test.dart` dan buktikan lulus.**
+3. **Step 3: Jalankan `flutter analyze` dan pastikan hasil `No issues found!` (0 error, 0 warning).**
+4. **Step 4: Update checklist Task 21 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).**
+5. **Step 5: Berikan laporan penuntasan komprehensif FASE 4 dan seluruh 21 tasks rencana implementasi.**

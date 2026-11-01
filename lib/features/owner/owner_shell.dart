@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/config/theme.dart';
+import '../../core/services/socket_realtime_service.dart';
+import '../../core/widgets/emergency_alert_banner.dart';
+import '../../data/models/realtime_envelope.dart';
 import '../../providers/fleet_provider.dart';
 import 'views/owner_dashboard_view.dart';
 import 'views/owner_fleet_view.dart';
@@ -17,6 +21,8 @@ class OwnerShell extends StatefulWidget {
 
 class _OwnerShellState extends State<OwnerShell> {
   int _currentIndex = 0;
+  RealtimeEmergencyPayload? _activeEmergencyAlert;
+  StreamSubscription? _emergencySub;
 
   final List<Widget> _views = const [
     OwnerDashboardView(),
@@ -32,7 +38,26 @@ class _OwnerShellState extends State<OwnerShell> {
     // Initial fetch of fleet metrics and emergency alerts
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FleetProvider>().fetchAllData();
+      try {
+        final socketService = context.read<SocketRealtimeService>();
+        socketService.connect();
+        _emergencySub = socketService.emergencyStream.listen((alert) {
+          if (mounted) {
+            setState(() {
+              _activeEmergencyAlert = alert;
+            });
+          }
+        });
+      } catch (e) {
+        debugPrint('Socket service connect notice in OwnerShell: $e');
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _emergencySub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -42,9 +67,30 @@ class _OwnerShellState extends State<OwnerShell> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _views,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _views,
+          ),
+          if (_activeEmergencyAlert != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 0,
+              right: 0,
+              child: EmergencyAlertBanner(
+                driverName: _activeEmergencyAlert!.driverName ?? 'Driver Armada',
+                emergencyType: _activeEmergencyAlert!.emergencyType,
+                onDismiss: () => setState(() => _activeEmergencyAlert = null),
+                onViewMap: () {
+                  setState(() {
+                    _activeEmergencyAlert = null;
+                    _currentIndex = 1; // Navigate to fleet map
+                  });
+                },
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

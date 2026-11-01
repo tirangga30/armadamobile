@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/config/theme.dart';
+import '../../core/services/socket_realtime_service.dart';
+import '../../core/widgets/emergency_alert_banner.dart';
+import '../../data/models/realtime_envelope.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/driver_tracking_provider.dart';
 import 'views/driver_home_view.dart';
@@ -17,6 +21,8 @@ class DriverShell extends StatefulWidget {
 
 class _DriverShellState extends State<DriverShell> {
   int _currentIndex = 0;
+  RealtimeEmergencyPayload? _activeEmergencyAlert;
+  StreamSubscription? _emergencySub;
 
   final List<Widget> _views = const [
     DriverHomeView(),
@@ -35,7 +41,27 @@ class _DriverShellState extends State<DriverShell> {
       driverProvider.checkActiveEmergency();
       // Auto-start GPS tracking on driver login as recommended in PRD
       driverProvider.startTracking();
+
+      try {
+        final socketService = context.read<SocketRealtimeService>();
+        socketService.connect();
+        _emergencySub = socketService.emergencyStream.listen((alert) {
+          if (mounted) {
+            setState(() {
+              _activeEmergencyAlert = alert;
+            });
+          }
+        });
+      } catch (e) {
+        debugPrint('Socket service connect notice in DriverShell: $e');
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _emergencySub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -44,9 +70,30 @@ class _DriverShellState extends State<DriverShell> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _views,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _views,
+          ),
+          if (_activeEmergencyAlert != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 0,
+              right: 0,
+              child: EmergencyAlertBanner(
+                driverName: _activeEmergencyAlert!.driverName ?? 'Pusat Armada',
+                emergencyType: _activeEmergencyAlert!.emergencyType,
+                onDismiss: () => setState(() => _activeEmergencyAlert = null),
+                onViewMap: () {
+                  setState(() {
+                    _activeEmergencyAlert = null;
+                    _currentIndex = 2; // SOS view
+                  });
+                },
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

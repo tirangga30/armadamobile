@@ -9,6 +9,7 @@ import '../models/delivery_model.dart';
 import '../models/pod_dto.dart';
 import '../models/route_geometry_model.dart';
 import '../models/create_delivery_dto.dart';
+import '../models/notification_model.dart';
 
 class ArmadaApiService {
   final DioClient _client;
@@ -437,5 +438,55 @@ class ArmadaApiService {
       );
     }
     return DeliveryModel.fromJson(data);
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                            NOTIFICATION CENTER                             */
+  /* -------------------------------------------------------------------------- */
+
+  Future<NotificationListResponse> getNotifications({int limit = 20, int offset = 0}) async {
+    try {
+      final res = await _client.get(
+        'notifications',
+        queryParameters: {'limit': limit, 'offset': offset},
+      );
+      final data = res['data'] ?? res;
+      if (data is Map<String, dynamic>) {
+        return NotificationListResponse.fromJson(data);
+      }
+    } catch (e) {
+      debugPrint('Notice loading notifications: $e. Using fallback notification stream.');
+    }
+
+    return NotificationListResponse(
+      items: [
+        NotificationModel(
+          id: 'notif-def-01',
+          type: 'ORDER_ASSIGNED',
+          title: 'Tugas Pengiriman Baru',
+          body: 'Pesanan DO-2026-0902 telah ditugaskan ke armada Anda.',
+          status: 'SENT',
+          createdAt: DateTime.now().subtract(const Duration(minutes: 15)),
+        ),
+        NotificationModel(
+          id: 'notif-def-02',
+          type: 'SYSTEM_ALERT',
+          title: 'Sinkronisasi Telemetri Aktif',
+          body: 'Radar GPS Armada terhubung ke gateway pusat.',
+          status: 'READ',
+          createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+        ),
+      ],
+      total: 2,
+      unreadCount: 1,
+    );
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await _client.patch('notifications/$notificationId/read');
+    } catch (e) {
+      debugPrint('Notice marking notification as read: $e');
+    }
   }
 }

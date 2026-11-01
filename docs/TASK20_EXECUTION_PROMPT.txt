@@ -1,0 +1,64 @@
+[DIRECTIVE: EXECUTE TASK 20 OF PHASE 4 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 20: Notification Center Screen & SOS Emergency Alert Banner** sesuai rencana di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-10-31-fe-mobile-full-implementation-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/notification_center_view_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/features/notifications/notification_center_view.dart';
+   import 'package:armada_mobile/core/widgets/emergency_alert_banner.dart';
+
+   void main() {
+     testWidgets('NotificationCenterView displays title and empty state', (tester) async {
+       await tester.pumpWidget(
+         const MaterialApp(
+           home: NotificationCenterView(),
+         ),
+       );
+
+       expect(find.text('Pusat Notifikasi'), findsOneWidget);
+     });
+
+     testWidgets('EmergencyAlertBanner renders driver name and emergency type', (tester) async {
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: EmergencyAlertBanner(
+               driverName: 'Driver Utama',
+               emergencyType: 'ACCIDENT',
+               onDismiss: () {},
+               onViewMap: () {},
+             ),
+           ),
+         ),
+       );
+
+       expect(find.text('PERINGATAN DARURAT: ACCIDENT'), findsOneWidget);
+       expect(find.text('Driver Utama mengaktifkan sinyal SOS!'), findsOneWidget);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/notification_center_view_test.dart` dan buktikan terjadi error kompilasi karena widget belum dibuat.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/core/widgets/emergency_alert_banner.dart`:
+     * Banner mengambang dengan latar belakang merah menyala/crimson (`AppTheme.statusDanger`).
+     * Ikon segitiga peringatan darurat dan teks: `PERINGATAN DARURAT: $emergencyType`.
+     * Teks deskripsi: `$driverName mengaktifkan sinyal SOS!`.
+     * Tombol aksi "Lihat di Peta" (`onViewMap`) dan tombol tutup/dismiss (`onDismiss`).
+   - Buat `lib/features/notifications/notification_center_view.dart`:
+     * AppBar: "Pusat Notifikasi" dengan tombol "Tandai Semua Dibaca".
+     * ListView dengan `RefreshIndicator` memanggil `ArmadaApiService.getNotifications()`.
+     * Kartu notifikasi: Ikon semantik berdasarkan `type` (merah untuk darurat, biru untuk penugasan pengiriman, hijau untuk POD selesai), badge status belum dibaca, judul, isi pesan, dan format waktu relatif/tanggal.
+     * Tap kartu memanggil `markNotificationAsRead`.
+   - Perbarui `lib/features/owner/owner_shell.dart` & `lib/features/driver/driver_shell.dart`:
+     * Tambahkan tombol lonceng notifikasi di AppBar yang membuka `NotificationCenterView`.
+     * Mount `EmergencyAlertBanner` di bagian atas stack antarmuka saat `socketService.emergencyStream` menerima event darurat.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/notification_center_view_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 20 di `docs/superpowers/plans/2026-10-31-fe-mobile-full-implementation-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 20.

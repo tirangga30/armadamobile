@@ -7,6 +7,7 @@ import '../../../data/models/delivery_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/driver_tracking_provider.dart';
 import '../../../core/services/navigation_service.dart';
+import '../../notifications/notification_center_view.dart';
 import '../widgets/pod_capture_sheet.dart';
 import '../widgets/stop_failure_dialog.dart';
 
@@ -45,6 +46,15 @@ class DriverHomeView extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Pusat Notifikasi',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationCenterView()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => tracking.loadDriverDeliveries(driverId: driver?.effectiveDriverId),

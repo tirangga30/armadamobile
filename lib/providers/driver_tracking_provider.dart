@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/socket_realtime_service.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/models/emergency_model.dart';
 import '../../data/models/pod_dto.dart';
@@ -11,6 +12,9 @@ import '../../data/repositories/armada_api_service.dart';
 class DriverTrackingProvider extends ChangeNotifier {
   final ArmadaApiService _apiService;
   final LocationService _locationService;
+  final SocketRealtimeService? _socketService;
+
+  StreamSubscription? _deliveryStatusSub;
 
   bool _isTracking = false;
   Timer? _trackingTimer;
@@ -31,8 +35,23 @@ class DriverTrackingProvider extends ChangeNotifier {
   DriverTrackingProvider({
     required ArmadaApiService apiService,
     required LocationService locationService,
+    SocketRealtimeService? socketService,
   })  : _apiService = apiService,
-        _locationService = locationService;
+        _locationService = locationService,
+        _socketService = socketService {
+    _initSocketListeners();
+  }
+
+  void _initSocketListeners() {
+    if (_socketService == null) return;
+    _deliveryStatusSub = _socketService.deliveryStatusStream.listen((event) {
+      final idx = _assignedDeliveries.indexWhere((d) => d.id == event.deliveryId);
+      if (idx != -1) {
+        _assignedDeliveries[idx] = _assignedDeliveries[idx].copyWith(status: event.newStatus);
+        notifyListeners();
+      }
+    });
+  }
 
   bool get isTracking => _isTracking;
   Position? get currentPosition => _currentPosition;
@@ -395,6 +414,7 @@ class DriverTrackingProvider extends ChangeNotifier {
   @override
   void dispose() {
     _trackingTimer?.cancel();
+    _deliveryStatusSub?.cancel();
     super.dispose();
   }
 }

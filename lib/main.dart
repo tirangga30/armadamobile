@@ -6,6 +6,7 @@ import 'core/config/app_config.dart';
 import 'core/config/theme.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/location_service.dart';
+import 'core/services/socket_realtime_service.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'data/repositories/armada_api_service.dart';
 import 'features/auth/login_screen.dart';
@@ -23,10 +24,12 @@ void main() async {
   final dioClient = DioClient(storageService: storageService);
   final apiService = ArmadaApiService(client: dioClient);
   final locationService = LocationService();
+  final socketService = SocketRealtimeService(storageService: storageService);
 
   runApp(
     MultiProvider(
       providers: [
+        Provider<SocketRealtimeService>.value(value: socketService),
         ChangeNotifierProvider<AuthProvider>(
           create: (_) => AuthProvider(
             apiService: apiService,
@@ -34,12 +37,16 @@ void main() async {
           )..checkSession(),
         ),
         ChangeNotifierProvider<FleetProvider>(
-          create: (_) => FleetProvider(apiService: apiService),
+          create: (_) => FleetProvider(
+            apiService: apiService,
+            socketService: socketService,
+          ),
         ),
         ChangeNotifierProvider<DriverTrackingProvider>(
           create: (_) => DriverTrackingProvider(
             apiService: apiService,
             locationService: locationService,
+            socketService: socketService,
           ),
         ),
       ],
