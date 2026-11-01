@@ -7,6 +7,7 @@ import 'core/config/theme.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/location_service.dart';
 import 'core/services/socket_realtime_service.dart';
+import 'core/services/local_outbox_service.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'data/repositories/armada_api_service.dart';
 import 'features/auth/login_screen.dart';
@@ -25,11 +26,13 @@ void main() async {
   final apiService = ArmadaApiService(client: dioClient);
   final locationService = LocationService();
   final socketService = SocketRealtimeService(storageService: storageService);
+  final outboxService = LocalOutboxService();
 
   runApp(
     MultiProvider(
       providers: [
         Provider<SocketRealtimeService>.value(value: socketService),
+        Provider<LocalOutboxService>.value(value: outboxService),
         ChangeNotifierProvider<AuthProvider>(
           create: (_) => AuthProvider(
             apiService: apiService,
@@ -47,6 +50,7 @@ void main() async {
             apiService: apiService,
             locationService: locationService,
             socketService: socketService,
+            outboxService: outboxService,
           ),
         ),
       ],

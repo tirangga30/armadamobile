@@ -4,15 +4,18 @@ import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/socket_realtime_service.dart';
+import '../../core/services/local_outbox_service.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/models/emergency_model.dart';
 import '../../data/models/pod_dto.dart';
+import '../../data/models/outbox_event_model.dart';
 import '../../data/repositories/armada_api_service.dart';
 
 class DriverTrackingProvider extends ChangeNotifier {
   final ArmadaApiService _apiService;
   final LocationService _locationService;
   final SocketRealtimeService? _socketService;
+  final LocalOutboxService? _outboxService;
 
   StreamSubscription? _deliveryStatusSub;
 
@@ -36,9 +39,11 @@ class DriverTrackingProvider extends ChangeNotifier {
     required ArmadaApiService apiService,
     required LocationService locationService,
     SocketRealtimeService? socketService,
+    LocalOutboxService? outboxService,
   })  : _apiService = apiService,
         _locationService = locationService,
-        _socketService = socketService {
+        _socketService = socketService,
+        _outboxService = outboxService {
     _initSocketListeners();
   }
 
@@ -135,6 +140,9 @@ class DriverTrackingProvider extends ChangeNotifier {
       _trackingStatusText = 'GPS Aktif (Tersinkron #$_syncCount)';
       _lastError = null;
       notifyListeners();
+
+      // Flush offline outbox upon successful ping
+      await flushOfflineOutbox();
     } catch (e) {
       debugPrint('Error syncing GPS ping: $e');
       _lastError = 'Gagal mengirim koordinat: $e';
@@ -171,6 +179,26 @@ class DriverTrackingProvider extends ChangeNotifier {
       notifyListeners();
       await _apiService.updateDeliveryStatus(deliveryId, newStatus);
     }
+  }
+
+  /// Flushes offline queued events in chunks of <= 50 to the backend
+  Future<int> flushOfflineOutbox() async {
+    if (_outboxService == null || _outboxService.pendingCount == 0) return 0;
+    int flushedCount = 0;
+    try {
+      final pending = _outboxService.getPendingEvents(limit: 50);
+      if (pending.isNotEmpty) {
+        final response = await _apiService.syncOutbox(OutboxSyncDto(events: pending));
+        if (response.acked.isNotEmpty) {
+          await _outboxService.acknowledge(response.acked);
+          flushedCount = response.acked.length;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Notice flushing outbox: $e');
+    }
+    return flushedCount;
   }
 
   /* -------------------------------------------------------------------------- */

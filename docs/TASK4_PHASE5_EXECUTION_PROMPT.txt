@@ -1,0 +1,72 @@
+[DIRECTIVE: EXECUTE TASK 4 OF PHASE 5 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 4: WebRTC & PTT Session DTOs & API Methods in ArmadaApiService** sesuai rencana di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-11-01-fe-mobile-phase5-communication-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/webrtc_api_service_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/models/webrtc_session_model.dart';
+   import 'package:armada_mobile/data/repositories/armada_api_service.dart';
+   import 'package:armada_mobile/core/network/dio_client.dart';
+   import 'package:armada_mobile/core/storage/secure_storage_service.dart';
+
+   void main() {
+     test('CallSessionModel parses session data and TURN credentials', () {
+       final json = {
+         'sessionId': 'session-001',
+         'type': 'VOICE_PTT',
+         'ownerId': 'owner-01',
+         'driverId': 'drv-01',
+         'status': 'PENDING',
+         'turnCredentials': {
+           'urls': ['turn:turn.armada.net:3478?transport=udp'],
+           'username': '1788352800:owner-01',
+           'credential': 'hmac_sha1_secret',
+           'ttlSeconds': 3600,
+         },
+       };
+
+       final model = CallSessionModel.fromJson(json);
+       expect(model.sessionId, 'session-001');
+       expect(model.type, 'VOICE_PTT');
+       expect(model.turnCredentials?.urls.first, contains('turn:turn.armada.net'));
+     });
+
+     test('ArmadaApiService exposes WebRTC session management methods', () {
+       final storage = SecureStorageService();
+       final dio = DioClient(storageService: storage);
+       final api = ArmadaApiService(client: dio);
+
+       expect(api.initiateVoiceSession, isNotNull);
+       expect(api.initiateVideoSession, isNotNull);
+       expect(api.respondToCallSession, isNotNull);
+       expect(api.endCallSession, isNotNull);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/webrtc_api_service_test.dart` dan buktikan terjadi error kompilasi karena model dan metode belum terdefinisi.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/data/models/webrtc_session_model.dart`:
+     * `TurnCredentialsModel` (`urls` List<String>, `username`, `credential`, `ttlSeconds`, `fromJson`, `toJson`).
+     * `CallSessionModel` (`sessionId`, `type`, `ownerId`, `driverId`, `status`, `deliveryId`, `turnCredentials`, `createdAt`, `fromJson`, `toJson`).
+   - Perbarui `lib/data/repositories/armada_api_service.dart`:
+     * Tambahkan import `../models/webrtc_session_model.dart`.
+     * Tambahkan metode:
+       - `Future<CallSessionModel> initiateVoiceSession(String driverId, {String? deliveryId})`:
+         * `POST voice-sessions` dengan payload `{'driverId': driverId, if (deliveryId != null) 'deliveryId': deliveryId}`.
+         * Mengembalikan `CallSessionModel`.
+       - `Future<CallSessionModel> initiateVideoSession(String driverId, {String? deliveryId})`:
+         * `POST video-sessions` dengan payload `{'driverId': driverId, if (deliveryId != null) 'deliveryId': deliveryId}`.
+         * Mengembalikan `CallSessionModel`.
+       - `Future<void> respondToCallSession(String sessionId, {required String action})`:
+         * `POST realtime/sessions/$sessionId/respond` dengan payload `{'action': action}` (ACCEPT atau DECLINE).
+       - `Future<void> endCallSession(String sessionId)`:
+         * `POST realtime/sessions/$sessionId/end`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/webrtc_api_service_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 4 di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 4 Fase 5.

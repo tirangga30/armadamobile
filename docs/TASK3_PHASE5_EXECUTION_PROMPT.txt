@@ -1,0 +1,100 @@
+[DIRECTIVE: EXECUTE TASK 3 OF PHASE 5 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 3: Chat Screen & Reactive Messaging UI (Owner & Driver 1:1 Conversation)** sesuai rencana di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-11-01-fe-mobile-phase5-communication-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/chat_conversation_view_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/features/chat/chat_conversation_view.dart';
+   import 'package:armada_mobile/features/chat/widgets/chat_bubble.dart';
+   import 'package:armada_mobile/data/models/chat_model.dart';
+
+   void main() {
+     testWidgets('ChatBubble renders outgoing and incoming styles with timestamp', (tester) async {
+       final msg = ChatMessageModel(
+         id: 'msg-01',
+         conversationId: 'conv-01',
+         senderId: 'user-01',
+         ciphertextBlob: 'blob',
+         headerJson: {},
+         plaintextBody: 'Halo, muatan siap diambil di Cakung.',
+         isOutgoing: true,
+         isDelivered: true,
+         isRead: false,
+         sentAt: DateTime.now(),
+       );
+
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: ChatBubble(message: msg),
+           ),
+         ),
+       );
+
+       expect(find.text('Halo, muatan siap diambil di Cakung.'), findsOneWidget);
+       expect(find.byIcon(Icons.done_all_rounded), findsOneWidget);
+     });
+
+     testWidgets('ChatConversationView renders driver title, messages, and input bar', (tester) async {
+       final conv = ConversationModel(
+         id: 'conv-01',
+         driverName: 'Pak Budi Santoso',
+         plateNumber: 'B 1234 CD',
+       );
+
+       final messages = [
+         ChatMessageModel(
+           id: 'msg-01',
+           conversationId: 'conv-01',
+           senderId: 'user-01',
+           ciphertextBlob: 'blob',
+           plaintextBody: 'Tolong pastikan surat jalan ditandatangani toko',
+           headerJson: {},
+           isOutgoing: false,
+           sentAt: DateTime.now(),
+         ),
+       ];
+
+       await tester.pumpWidget(
+         MaterialApp(
+           home: ChatConversationView(
+             conversation: conv,
+             initialMessages: messages,
+           ),
+         ),
+       );
+
+       expect(find.text('Pak Budi Santoso'), findsOneWidget);
+       expect(find.text('Tolong pastikan surat jalan ditandatangani toko'), findsOneWidget);
+       expect(find.byType(TextField), findsOneWidget);
+       expect(find.byIcon(Icons.send_rounded), findsOneWidget);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/chat_conversation_view_test.dart` dan buktikan terjadi error kompilasi karena widget belum dibuat.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/features/chat/widgets/chat_bubble.dart`:
+     * Pesan keluar (`isOutgoing: true`): Background royal blue (`AppTheme.primaryBlue`), teks putih, alignment kanan.
+     * Pesan masuk (`isOutgoing: false`): Background putih/slate halus (`Color(0xFFF1F5F9)`), teks hitam gelap (`AppTheme.textPrimary`), alignment kiri.
+     * Timestamp rapi di pojok kanan bawah bubble.
+     * Status centang: Centang tunggal untuk terkirim (`Icons.check_rounded`), centang ganda abu-abu untuk tersampaikan (`Icons.done_all_rounded`), dan centang ganda biru muda untuk terbaca.
+     * Indikator lencana gembok kecil ("Terenkripsi E2EE") di bagian atas percakapan.
+   - Buat `lib/features/chat/chat_conversation_view.dart`:
+     * AppBar: Nama lawan bicara (misal `Pak Budi Santoso`), plat nomor/status online, dan tombol panggilan balik cepat.
+     * ListView pesan dengan scroll controller otomatis ke pesan terakhir.
+     * Input bar di bawah: TextField dengan placeholder "Ketik pesan rahasia terenkripsi...", tombol kirim (`Icons.send_rounded`).
+     * Saat kirim:
+       1. Enkripsi plaintext menggunakan `E2eeCryptoService.encrypt(text, 'armada_e2ee_shared_master_key_2026!')`.
+       2. Bentuk `SendMessageDto` dan panggil `ArmadaApiService.sendChatMessage` (atau mock fallback jika offline).
+       3. Tambahkan ke daftar pesan lokal dan segarkan UI.
+     * Dengarkan `SocketRealtimeService.chatMessageStream`: Jika ada pesan baru untuk `conversationId` ini, otomatis dekripsi dan tambahkan ke UI.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/chat_conversation_view_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 3 di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 3 Fase 5.

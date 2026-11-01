@@ -1,0 +1,35 @@
+[STRICT DIRECTIVE: PLAN MODE ONLY]
+Kamu adalah Lead Mobile Software Engineer (Flutter). Tugasmu saat ini adalah:
+MENYUSUN DOKUMEN SPESIFIKASI TEKNIS & IMPLEMENTATION PLAN DETAIL UNTUK:
+FASE 5: Komunikasi Lapangan Realtime (Chat E2EE Signal Protocol & PTT Voice / WebRTC Video) serta Offline Outbox Sync pada repositori `armadamobile`.
+
+PERATURAN MUTLAK:
+1. STRICT PLAN MODE: DILARANG mengubah kode sumber aplikasi (.dart), DILARANG menjalankan git commit atau migrasi. Saat ini HANYA menulis dokumen perencanaan di `docs/`.
+2. Susun dokumen terstruktur di:
+   - `docs/superpowers/specs/2026-11-01-fe-mobile-phase5-communication-spec.md`
+   - `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md`
+3. Konsultasikan skill UI/UX Pro Max di `.opencode/skills/ui-ux-pro-max/` untuk standar layout chat mobile (bubble dialog, input bar, status read/sent) dan tombol PTT Walkie-Talkie (press-to-talk ergonomi jempol).
+4. Konsultasikan kontrak API Backend yang sudah 100% lulus test di:
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/api/CHAT-API-CONTRACT.md`
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/api/WEBRTC-API-CONTRACT.md`
+   - `/home/priz/Documents/be-distribution-system-armada/docs/distribution-system-docs/api/CONFLICT-API-CONTRACT.md`
+   - Controller asli di BE: `conversations.controller.ts`, `communication.controller.ts`, `conflicts.controller.ts`.
+
+RUANG LINGKUP PERENCANAAN FASE 5 (Bite-sized Tasks TDD):
+1. **Modul Chat Obrolan (E2EE Signal Protocol)**:
+   - DTO & Enkripsi: Pre-key bundle exchange, payload pesan terenkripsi base64 ciphertext, initialization vector (IV), sender key.
+   - Endpoint: `POST /v1/conversations`, `GET /v1/conversations`, `GET /v1/conversations/:id/messages`, `POST /v1/conversations/:id/messages`.
+   - Realtime Streaming: Menghubungkan WebSocket event `chat:message:received` dan `chat:message:read`.
+   - UI: Tab/Layar Chat Obrolan Driver $\leftrightarrow$ Owner dengan bubble chat modern, timestamp, dan status centang ganda.
+2. **Modul PTT Voice / WebRTC Video (Walkie-Talkie)**:
+   - Signalling Endpoint: `POST /v1/voice-sessions`, `POST /v1/video-sessions`, `POST /v1/realtime/sessions/:id/respond`, `POST /v1/realtime/sessions/:id/end`.
+   - Signalling Realtime WebSocket: Handler offer, answer, dan ICE candidate via namespace `/v1/realtime`.
+   - UI: Tombol mengambang atau drawer Push-to-Talk (Hold-to-talk mikrofon, visualizer audio wave).
+3. **Modul Offline Outbox Sync**:
+   - Struktur antrean lokal SQLite/Hive: Menyimpan mutasi status stop, telemetri, atau pesan saat offline.
+   - Sinkronisasi massal via `POST /v1/me/sync/outbox`.
+   - Resolusi konflik `LAST_WRITE_WINS` atau server authority.
+
+Tulis spesifikasi dan rencana kerja yang sangat mendalam dengan format TDD standar Superpowers, mencakup interfaces, file yang disentuh, review focus (5 skenario kritis), dan verifikasi `flutter analyze`.
+
+Setelah selesai membuat dokumen di `docs/superpowers/specs/` dan `docs/superpowers/plans/`, berikan laporan ringkasan rencana dan nyatakan status: PLAN READY FOR REVIEW.

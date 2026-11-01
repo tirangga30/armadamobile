@@ -1,0 +1,71 @@
+[DIRECTIVE: EXECUTE TASK 2 OF PHASE 5 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 2: Chat API Methods in ArmadaApiService & Realtime Gateway Integration** sesuai rencana di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-11-01-fe-mobile-phase5-communication-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/chat_api_service_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/repositories/armada_api_service.dart';
+   import 'package:armada_mobile/core/network/dio_client.dart';
+   import 'package:armada_mobile/core/storage/secure_storage_service.dart';
+   import 'package:armada_mobile/core/services/socket_realtime_service.dart';
+
+   void main() {
+     test('ArmadaApiService exposes conversation and message endpoints', () {
+       final storage = SecureStorageService();
+       final dio = DioClient(storageService: storage);
+       final api = ArmadaApiService(client: dio);
+       final socket = SocketRealtimeService(storageService: storage);
+
+       expect(api.getConversations, isNotNull);
+       expect(api.createConversation, isNotNull);
+       expect(api.getMessages, isNotNull);
+       expect(api.sendChatMessage, isNotNull);
+       expect(socket.chatMessageStream, isNotNull);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/chat_api_service_test.dart` dan buktikan terjadi error kompilasi karena metode-metode tersebut belum terdefinisi di `ArmadaApiService` dan `SocketRealtimeService`.
+3. **Step 3 (Green - Implementation):**
+   - Perbarui `lib/data/repositories/armada_api_service.dart`:
+     * Tambahkan import `../models/chat_model.dart`.
+     * Tambahkan metode:
+       - `Future<List<ConversationModel>> getConversations()`:
+         * Memanggil `GET conversations`.
+         * Mem-parsing list respons menjadi `List<ConversationModel>`.
+         * Sediakan fallback dataset terstruktur bila backend mengembalikan empty/mock (misal obrolan dengan Driver Utama).
+       - `Future<ConversationModel> createConversation(String driverId)`:
+         * Memanggil `POST conversations` dengan payload `{'driverId': driverId}`.
+         * Mengembalikan `ConversationModel`.
+       - `Future<List<ChatMessageModel>> getMessages(String conversationId, {int limit = 50, int offset = 0})`:
+         * Memanggil `GET conversations/$conversationId/messages?limit=$limit&offset=$offset`.
+         * Mengembalikan `List<ChatMessageModel>`.
+       - `Future<ChatMessageModel> sendChatMessage(String conversationId, SendMessageDto dto)`:
+         * Memanggil `POST conversations/$conversationId/messages` dengan payload `dto.toJson()`.
+         * Mengembalikan `ChatMessageModel`.
+   - Perbarui `lib/core/services/socket_realtime_service.dart`:
+     * Tambahkan `final _chatMessageController = StreamController<ChatMessageModel>.broadcast();`
+     * Expose getter: `Stream<ChatMessageModel> get chatMessageStream => _chatMessageController.stream;`
+     * Di dalam `_setupSocketListeners()`:
+       * Listen event `chat.message.relayed`:
+         ```dart
+         _socket!.on('chat.message.relayed', (data) {
+           if (data is Map<String, dynamic>) {
+             try {
+               final msg = ChatMessageModel.fromJson(data['payload'] ?? data);
+               _chatMessageController.add(msg);
+             } catch (e) {
+               debugPrint('Error parsing chat.message.relayed: $e');
+             }
+           }
+         });
+         ```
+       * Tutup controller di `dispose()`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/chat_api_service_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 2 di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 2 Fase 5.

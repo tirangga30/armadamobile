@@ -1,0 +1,98 @@
+[DIRECTIVE: EXECUTE TASK 1 OF PHASE 5 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 1: Chat & E2EE Models & Ciphertext Encryption Helper** sesuai rencana di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-11-01-fe-mobile-phase5-communication-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/e2ee_chat_model_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/models/chat_model.dart';
+   import 'package:armada_mobile/core/services/e2ee_crypto_service.dart';
+
+   void main() {
+     test('E2eeCryptoService encrypts and decrypts message with shared key', () {
+       const key = 'secret_test_key_32_characters_long!';
+       const plaintext = 'Instruksi: bongkar di gudang belakang toko';
+
+       final encrypted = E2eeCryptoService.encrypt(plaintext, key);
+       expect(encrypted.ciphertextBlob, isNotEmpty);
+       expect(encrypted.ciphertextBlob, isNot(contains('Instruksi')));
+       expect(encrypted.headerJson, contains('iv'));
+
+       final decrypted = E2eeCryptoService.decrypt(
+         encrypted.ciphertextBlob,
+         key,
+         encrypted.headerJson['iv'] as String,
+       );
+       expect(decrypted, equals(plaintext));
+     });
+
+     test('SendMessageDto serializes ciphertext and headers to backend schema', () {
+       final dto = SendMessageDto(
+         recipientDeviceId: '550e8400-e29b-41d4-a716-446655440000',
+         ciphertextBlob: 'SGVsbG8gV29ybGQ=',
+         headerJson: {'iv': 'random_iv_123'},
+         idempotencyKey: 'idem-uuid-001',
+       );
+       final json = dto.toJson();
+       expect(json['recipientDeviceId'], '550e8400-e29b-41d4-a716-446655440000');
+       expect(json['ciphertextBlob'], 'SGVsbG8gV29ybGQ=');
+       expect(json['idempotencyKey'], 'idem-uuid-001');
+     });
+
+     test('ConversationModel and ChatMessageModel parse json correctly', () {
+       final conv = ConversationModel.fromJson({
+         'id': 'conv-01',
+         'participantAId': 'user-owner',
+         'participantBId': 'user-driver',
+         'driverName': 'Driver Utama',
+         'lastMessagePreview': 'Terkirim',
+         'lastMessageAt': '2026-11-01T08:00:00.000Z',
+         'unreadCount': 2,
+       });
+       expect(conv.id, 'conv-01');
+       expect(conv.driverName, 'Driver Utama');
+       expect(conv.unreadCount, 2);
+
+       final msg = ChatMessageModel.fromJson({
+         'id': 'msg-01',
+         'conversationId': 'conv-01',
+         'senderId': 'user-driver',
+         'ciphertextBlob': 'SGVsbG8=',
+         'headerJson': {'iv': 'iv123'},
+         'sentAt': '2026-11-01T08:00:00.000Z',
+         'isRead': false,
+       });
+       expect(msg.id, 'msg-01');
+       expect(msg.isRead, isFalse);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/e2ee_chat_model_test.dart` dan buktikan terjadi error kompilasi karena file model dan service belum ada.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/core/services/e2ee_crypto_service.dart`:
+     * Gunakan package `encrypt` (`import 'package:encrypt/encrypt.dart' as enc;`) dan `dart:convert`.
+     * Definisikan class `EncryptedPayload`:
+       - `final String ciphertextBlob;`
+       - `final Map<String, dynamic> headerJson;`
+       - Konstruktor `const EncryptedPayload({required this.ciphertextBlob, required this.headerJson});`
+     * Definisikan class `E2eeCryptoService`:
+       - `static EncryptedPayload encrypt(String plaintext, String keyString)`:
+         * Pastikan key memiliki panjang tepat 32 byte (misal jika kurang/lebih, derive menggunakan SHA-256 via `sha256.convert(utf8.encode(keyString)).bytes` dari package `crypto`).
+         * Generate IV acak 16 byte (`enc.IV.fromSecureRandom(16)`).
+         * Enkripsi plaintext menggunakan `enc.Encrypter(enc.AES(enc.Key(keyBytes), mode: enc.AESMode.cbc))` dan kembalikan `EncryptedPayload(ciphertextBlob: encrypted.base64, headerJson: {'iv': iv.base64, 'algorithm': 'AES-256-CBC'})`.
+       - `static String decrypt(String ciphertextBlob, String keyString, String ivBase64)`:
+         * Derive key 32 byte.
+         * Decode `enc.IV.fromBase64(ivBase64)`.
+         * Dekripsi `encrypter.decrypt64(ciphertextBlob, iv: iv)` dan kembalikan string plaintext.
+   - Buat `lib/data/models/chat_model.dart`:
+     * `SendMessageDto` (`recipientDeviceId`, `ciphertextBlob`, `headerJson`, `idempotencyKey`, `toJson`, `fromJson`).
+     * `ConversationModel` (`id`, `participantAId`, `participantBId`, `driverName`, `lastMessagePreview`, `lastMessageAt`, `unreadCount`, `toJson`, `fromJson`).
+     * `ChatMessageModel` (`id`, `conversationId`, `senderId`, `senderName`, `ciphertextBlob`, `headerJson`, `sentAt`, `isDelivered`, `isRead`, `decryptedText`, `toJson`, `fromJson`, `copyWith`).
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/e2ee_chat_model_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 1 di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 1 Fase 5.

@@ -5,7 +5,10 @@ import '../../../core/config/theme.dart';
 import '../../../data/models/delivery_model.dart';
 import '../../../data/models/create_delivery_dto.dart';
 import '../../../data/models/route_geometry_model.dart';
+import '../../../data/models/chat_model.dart';
 import '../../../providers/fleet_provider.dart';
+import '../../chat/chat_conversation_view.dart';
+import '../../communication/widgets/ptt_walkie_talkie_button.dart';
 import '../widgets/assign_driver_modal_sheet.dart';
 import '../widgets/route_optimizer_sheet.dart';
 
@@ -333,6 +336,90 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ChatConversationView(
+                                  conversation: ConversationModel(
+                                    id: 'conv-${item.id}',
+                                    driverId: item.driverId ?? 'drv-01',
+                                    driverName: item.assignedDriver ?? 'Driver Utama',
+                                    plateNumber: item.plateNumber ?? 'B 9281 SXZ',
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                          label: const Text('Chat E2EE'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlue,
+                            side: const BorderSide(color: AppTheme.primaryBlue),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => Dialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'PTT Walkie-Talkie',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 16,
+                                          color: AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Tekan tombol untuk transmisi suara instan ke ${item.assignedDriver}.',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      PttWalkieTalkieButton(
+                                        onPressStart: () {},
+                                        onPressEnd: () {},
+                                      ),
+                                      const SizedBox(height: 16),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx),
+                                        child: const Text('Tutup'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.radio_rounded, size: 16),
+                          label: const Text('PTT Voice'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.statusSuccess,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
                         ),
                       ),
                     ],

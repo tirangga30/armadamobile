@@ -1,0 +1,69 @@
+[DIRECTIVE: EXECUTE TASK 6 OF PHASE 5 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 6: Push-To-Talk (Walkie-Talkie) & Video Call Consent UI** sesuai rencana di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-11-01-fe-mobile-phase5-communication-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/ptt_walkie_talkie_widget_test.dart`:
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/features/communication/widgets/ptt_walkie_talkie_button.dart';
+   import 'package:armada_mobile/features/communication/widgets/incoming_call_dialog.dart';
+
+   void main() {
+     testWidgets('PttWalkieTalkieButton renders hold-to-talk button and label', (tester) async {
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: PttWalkieTalkieButton(
+               onPressStart: () {},
+               onPressEnd: () {},
+             ),
+           ),
+         ),
+       );
+
+       expect(find.text('TEKAN UNTUK BICARA'), findsOneWidget);
+       expect(find.byIcon(Icons.mic_rounded), findsOneWidget);
+     });
+
+     testWidgets('IncomingCallDialog displays caller name and Accept/Decline actions', (tester) async {
+       await tester.pumpWidget(
+         MaterialApp(
+           home: Scaffold(
+             body: IncomingCallDialog(
+               callerName: 'Owner Dispatcher',
+               callType: 'VOICE_PTT',
+               onAccept: () {},
+               onDecline: () {},
+             ),
+           ),
+         ),
+       );
+
+       expect(find.text('Panggilan Masuk: VOICE_PTT'), findsOneWidget);
+       expect(find.text('Owner Dispatcher'), findsOneWidget);
+       expect(find.text('Terima'), findsOneWidget);
+       expect(find.text('Tolak'), findsOneWidget);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/ptt_walkie_talkie_widget_test.dart` dan buktikan terjadi error kompilasi karena widget belum dibuat.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/features/communication/widgets/ptt_walkie_talkie_button.dart`:
+     * Desain tombol walkie-talkie melingkar besar ($80 \times 80\text{ dp}$), ramah jempol driver (`AppTheme.primaryBlue` saat idle, merah menyala `AppTheme.statusDanger` saat ditekan/bicara).
+     * `GestureDetector` dengan `onTapDown` / `onLongPressStart` memicu `onPressStart` dan `onTapUp` / `onTapCancel` / `onLongPressEnd` memicu `onPressEnd`.
+     * Efek visual gelombang suara (pulsing ring animation).
+     * Label panduan: "TEKAN UNTUK BICARA" saat idle, "SEDANG MENGIRIM SUARA..." saat ditekan.
+   - Buat `lib/features/communication/widgets/incoming_call_dialog.dart`:
+     * HATI-HATI ATURAN REVIEW FOCUS #5 (Driver Video Privacy Consent Gate):
+       - Dialog modal peringatan panggilan masuk yang menampilkan nama penelepon (`callerName`), jenis panggilan (`VOICE_PTT` atau `VIDEO`), dan tujuan delivery (jika ada).
+       - Tombol "Tolak" (merah) memanggil `onDecline()`.
+       - Tombol "Terima" (hijau) memanggil `onAccept()`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/ptt_walkie_talkie_widget_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 6 di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 6 Fase 5.

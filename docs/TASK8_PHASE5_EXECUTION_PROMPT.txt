@@ -1,0 +1,93 @@
+[DIRECTIVE: EXECUTE TASK 8 OF PHASE 5 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 8: Outbox Bulk Sync Endpoint & Network Auto-Flush Integration** sesuai rencana di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-11-01-fe-mobile-phase5-communication-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/outbox_sync_api_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/repositories/armada_api_service.dart';
+   import 'package:armada_mobile/core/network/dio_client.dart';
+   import 'package:armada_mobile/core/storage/secure_storage_service.dart';
+   import 'package:armada_mobile/providers/driver_tracking_provider.dart';
+   import 'package:armada_mobile/core/services/location_service.dart';
+   import 'package:armada_mobile/core/services/local_outbox_service.dart';
+
+   void main() {
+     test('ArmadaApiService exposes syncOutbox endpoint', () {
+       final storage = SecureStorageService();
+       final dio = DioClient(storageService: storage);
+       final api = ArmadaApiService(client: dio);
+
+       expect(api.syncOutbox, isNotNull);
+     });
+
+     test('DriverTrackingProvider exposes flushOfflineOutbox method', () {
+       final storage = SecureStorageService();
+       final dio = DioClient(storageService: storage);
+       final api = ArmadaApiService(client: dio);
+       final location = LocationService();
+       final outbox = LocalOutboxService();
+       final provider = DriverTrackingProvider(
+         apiService: api,
+         locationService: location,
+         outboxService: outbox,
+       );
+
+       expect(provider.flushOfflineOutbox, isNotNull);
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/outbox_sync_api_test.dart` dan buktikan terjadi error kompilasi karena metode `syncOutbox` belum ada di `ArmadaApiService` dan parameter `outboxService` belum diterima di `DriverTrackingProvider`.
+3. **Step 3 (Green - Implementation):**
+   - Perbarui `lib/data/repositories/armada_api_service.dart`:
+     * Tambahkan import `../models/outbox_event_model.dart`.
+     * Tambahkan metode:
+       ```dart
+       Future<OutboxSyncResponse> syncOutbox(OutboxSyncDto dto) async {
+         final res = await _client.post(
+           'me/sync/outbox',
+           data: dto.toJson(),
+         );
+         final data = res['data'];
+         if (data is Map<String, dynamic>) {
+           return OutboxSyncResponse.fromJson(data);
+         }
+         return OutboxSyncResponse(
+           acked: dto.events.map((e) => e.clientEventId).toList(),
+           conflicts: [],
+         );
+       }
+       ```
+   - Perbarui `lib/providers/driver_tracking_provider.dart`:
+     * Tambahkan parameter opsional `LocalOutboxService? outboxService` pada konstruktor `DriverTrackingProvider`.
+     * Tambahkan metode:
+       ```dart
+       Future<int> flushOfflineOutbox() async {
+         if (_outboxService == null || _outboxService!.pendingCount == 0) return 0;
+         int flushedCount = 0;
+         try {
+           final pending = _outboxService!.getPendingEvents(limit: 50);
+           if (pending.isNotEmpty) {
+             final response = await _apiService.syncOutbox(OutboxSyncDto(events: pending));
+             if (response.acked.isNotEmpty) {
+               await _outboxService!.acknowledge(response.acked);
+               flushedCount = response.acked.length;
+               notifyListeners();
+             }
+           }
+         } catch (e) {
+           debugPrint('Notice flushing outbox: $e');
+         }
+         return flushedCount;
+       }
+       ```
+     * Panggil `flushOfflineOutbox()` setiap kali GPS ping sukses terkirim (`_sendGpsPing`).
+   - Perbarui `lib/main.dart` untuk mendaftarkan `LocalOutboxService` ke MultiProvider dan menginjeksikannya ke `DriverTrackingProvider`.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/outbox_sync_api_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 8 di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 8 Fase 5.

@@ -1,0 +1,82 @@
+[DIRECTIVE: EXECUTE TASK 7 OF PHASE 5 - TDD IMPLEMENTATION]
+Lanjutkan sesi `ses_e70007051ffeqAIh6pKAUf731b` untuk mengeksekusi **Task 7: Offline Outbox Storage & Queue Service (LocalOutboxService)** sesuai rencana di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` dan spesifikasi di `docs/superpowers/specs/2026-11-01-fe-mobile-phase5-communication-spec.md`.
+
+IKUTI 5 LANGKAH TDD SECARA DISIPLIN:
+1. **Step 1 (Red - Failing Test):**
+   Buat file `test/local_outbox_service_test.dart`:
+   ```dart
+   import 'package:flutter_test/flutter_test.dart';
+   import 'package:armada_mobile/data/models/outbox_event_model.dart';
+   import 'package:armada_mobile/core/services/local_outbox_service.dart';
+
+   void main() {
+     test('LocalOutboxService enqueues, limits batch to 50, and acknowledges events', () async {
+       final outbox = LocalOutboxService();
+       outbox.clear();
+
+       await outbox.enqueue(
+         eventType: 'stop.arrived',
+         payload: {'stopId': 'st-01', 'latitude': -6.2088},
+       );
+
+       final pending = outbox.getPendingEvents(limit: 50);
+       expect(pending.length, 1);
+       expect(pending.first.eventType, 'stop.arrived');
+       expect(pending.first.clientEventId, isNotEmpty);
+       expect(pending.first.idempotencyKey, isNotNull);
+
+       await outbox.acknowledge([pending.first.clientEventId]);
+       expect(outbox.pendingCount, 0);
+     });
+
+     test('OutboxSyncDto serializes events list correctly', () {
+       final dto = OutboxSyncDto(events: [
+         OutboxEventItemDto(
+           clientEventId: 'evt-01',
+           idempotencyKey: 'idem-01',
+           eventType: 'stop.departed',
+           occurredAt: DateTime.now(),
+           payload: {'stopId': 'st-01'},
+         ),
+       ]);
+       final json = dto.toJson();
+       expect((json['events'] as List).length, 1);
+       expect(json['events'][0]['eventType'], 'stop.departed');
+     });
+   }
+   ```
+2. **Step 2 (Verify Red):**
+   Jalankan `flutter test test/local_outbox_service_test.dart` dan buktikan terjadi error kompilasi karena model dan service belum dibuat.
+3. **Step 3 (Green - Implementation):**
+   - Buat `lib/data/models/outbox_event_model.dart`:
+     * `OutboxEventItemDto`:
+       - `final String clientEventId;`
+       - `final String idempotencyKey;`
+       - `final String eventType;`
+       - `final DateTime occurredAt;`
+       - `final Map<String, dynamic> payload;`
+       - `toJson()` & `fromJson()`.
+     * `OutboxSyncDto`:
+       - `final List<OutboxEventItemDto> events;`
+       - `toJson()` & `fromJson()`.
+     * `OutboxSyncResponse`:
+       - `final List<String> acked;`
+       - `final List<dynamic> conflicts;`
+       - `fromJson()`.
+   - Buat `lib/core/services/local_outbox_service.dart`:
+     * Definisikan class `LocalOutboxService`:
+       - Singleton/in-memory list queue dengan persistent fallback capability.
+       - HATI-HATI ATURAN REVIEW FOCUS #3 & #4:
+         * Batas maksimal per slice: `min(limit, 50)`. Backend menolak keras `ArrayMaxSize(50)`!
+         * Setiap event yang di-enqueue menghasilkan `idempotencyKey: const Uuid().v4()` dan `clientEventId: const Uuid().v4()` yang persisten.
+       - Metode `Future<void> enqueue({required String eventType, required Map<String, dynamic> payload, String? idempotencyKey})`: Menambah event ke antrean.
+       - Getter `int get pendingCount`: Mengembalikan jumlah event pending.
+       - Metode `List<OutboxEventItemDto> getPendingEvents({int limit = 50})`: Mengambil batch event pending maksimal 50.
+       - Metode `Future<void> acknowledge(List<String> clientEventIds)`: Menghapus event yang telah di-ack dari antrean.
+       - Metode `void clear()`: Mengosongkan antrean untuk testing.
+4. **Step 4 (Verify Green & Clean Lint):**
+   - Jalankan `flutter test test/local_outbox_service_test.dart` dan buktikan lulus.
+   - Jalankan `flutter analyze` untuk memastikan 0 issues.
+5. **Step 5 (Checklist & Status):**
+   - Update checklist Task 7 di `docs/superpowers/plans/2026-11-01-fe-mobile-phase5-communication-plan.md` menjadi selesai (`[x]`).
+   - Berikan laporan hasil eksekusi Task 7 Fase 5.
