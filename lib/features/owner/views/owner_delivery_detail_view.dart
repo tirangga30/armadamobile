@@ -381,19 +381,44 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => ChatConversationView(
-                                  conversation: ConversationModel(
-                                    id: 'conv-${item.id}',
-                                    driverId: item.driverId ?? 'drv-01',
-                                    driverName: item.assignedDriver ?? 'Driver Utama',
-                                    plateNumber: item.plateNumber ?? 'B 9281 SXZ',
+                          onPressed: () async {
+                            ArmadaApiService api;
+                            try {
+                              api = context.read<ArmadaApiService>();
+                            } catch (_) {
+                              api = ArmadaApiService(
+                                client: DioClient(storageService: SecureStorageService()),
+                              );
+                            }
+                            ConversationModel targetConv;
+                            try {
+                              if (item.driverId != null && item.driverId!.isNotEmpty) {
+                                targetConv = await api.createConversation(item.driverId!);
+                              } else {
+                                targetConv = ConversationModel(
+                                  id: 'conv-${item.id}',
+                                  driverId: 'drv-01',
+                                  driverName: item.assignedDriver ?? 'Driver Utama',
+                                  plateNumber: item.plateNumber ?? 'B 9281 SXZ',
+                                );
+                              }
+                            } catch (_) {
+                              targetConv = ConversationModel(
+                                id: 'conv-${item.id}',
+                                driverId: item.driverId ?? 'drv-01',
+                                driverName: item.assignedDriver ?? 'Driver Utama',
+                                plateNumber: item.plateNumber ?? 'B 9281 SXZ',
+                              );
+                            }
+                            if (context.mounted) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ChatConversationView(
+                                    conversation: targetConv,
                                   ),
                                 ),
-                              ),
-                            );
+                              );
+                            }
                           },
                           icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
                           label: const Text('Chat E2EE'),

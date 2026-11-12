@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/config/theme.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/fleet_provider.dart';
+import '../../chat/conversation_inbox_view.dart';
 import '../../notifications/notification_center_view.dart';
 
 class OwnerDashboardView extends StatelessWidget {
@@ -40,6 +41,15 @@ class OwnerDashboardView extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: 'Pesan & Obrolan E2EE',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ConversationInboxView()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             tooltip: 'Pusat Notifikasi',

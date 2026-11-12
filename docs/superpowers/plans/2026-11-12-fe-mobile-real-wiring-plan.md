@@ -269,7 +269,7 @@ git commit -m "feat(route): wire real OSRM polyline geometry and 2-Opt optimizat
   - Driver & Owner navigation entry points to `ConversationInboxView`
   - Canonical conversation UUID creation/lookup in `owner_delivery_detail_view.dart`.
 
-- [ ] **Step 1: Write failing widget test in `test/conversation_inbox_test.dart`**
+- [x] **Step 1: Write failing widget test in `test/conversation_inbox_test.dart`**
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -308,7 +308,7 @@ void main() {
 Run: `flutter test test/conversation_inbox_test.dart`
 Expected: FAIL with "conversation_inbox_view.dart not found".
 
-- [ ] **Step 3: Create `ConversationInboxView` and wire navigation entry points**
+- [x] **Step 3: Create `ConversationInboxView` and wire navigation entry points**
 - Create `lib/features/chat/conversation_inbox_view.dart`:
   * Pull-to-refresh list calling `apiService.getConversations()`.
   * Renders each conversation tile with avatar, participant name, unread badge, E2EE lock subtitle, and tap navigation to `ChatConversationView`.
@@ -319,7 +319,7 @@ Expected: FAIL with "conversation_inbox_view.dart not found".
 - Update `lib/features/owner/views/owner_delivery_detail_view.dart`:
   * When Owner clicks "Chat E2EE", call `apiService.createConversation(item.driverId!)` to retrieve canonical `ConversationModel` UUID from `POST /v1/conversations` instead of using `'conv-${item.id}'`.
 
-- [ ] **Step 4: Run test & analyzer to verify green**
+- [x] **Step 4: Run test & analyzer to verify green**
 Run: `flutter test test/conversation_inbox_test.dart`
 Expected: PASS.
 Run: `flutter analyze`
@@ -450,7 +450,7 @@ Expected: FAIL with "webrtc_service.dart not found".
 - Add `RECORD_AUDIO`, `CAMERA`, `MODIFY_AUDIO_SETTINGS`, `BLUETOOTH` permissions to `android/app/src/main/AndroidManifest.xml`, and `NSMicrophoneUsageDescription` to `ios/Runner/Info.plist`.
 - Implement `lib/core/services/webrtc_service.dart` encapsulating `RTCPeerConnection`, `MediaStream`, STUN (`stun:stun.l.google.com:19302`) + TURN `iceServers` setup, `setMicrophoneEnabled(bool)` for PTT track gating, and clean `dispose()`.
 
-- [ ] **Step 4: Run test & analyzer to verify green**
+- [x] **Step 4: Run test & analyzer to verify green**
 Run: `flutter test test/webrtc_service_test.dart`
 Expected: PASS.
 Run: `flutter analyze`
