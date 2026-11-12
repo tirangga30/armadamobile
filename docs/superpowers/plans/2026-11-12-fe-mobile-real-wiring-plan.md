@@ -416,7 +416,7 @@ git commit -m "feat(chat): wire real E2EE message persistence, ack tracking, and
 - Produces:
   - `WebRtcService` (`requestCallPermissions({bool video})`, `buildIceServers(TurnCredentialsModel?)`, `initCall({required bool isVideo, TurnCredentialsModel? turnCredentials})`, `createOffer()`, `createAnswer(String remoteSdp)`, `setRemoteAnswer(String remoteSdp)`, `addIceCandidate(Map<String, dynamic>)`, `setMicrophoneEnabled(bool enabled)`, `dispose()`, `onIceCandidate` callback, `localRenderer`, `remoteRenderer`).
 
-- [ ] **Step 1: Write failing test in `test/webrtc_service_test.dart`**
+- [x] **Step 1: Write failing test in `test/webrtc_service_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/core/services/webrtc_service.dart';
@@ -445,7 +445,7 @@ void main() {
 Run: `flutter test test/webrtc_service_test.dart`
 Expected: FAIL with "webrtc_service.dart not found".
 
-- [ ] **Step 3: Add `flutter_webrtc` & `permission_handler`, configure native manifests, implement `WebRtcService`**
+- [x] **Step 3: Add `flutter_webrtc` & `permission_handler`, configure native manifests, implement `WebRtcService`**
 - Add `flutter_webrtc: ^0.12.5` and `permission_handler: ^11.4.0` to `pubspec.yaml` and run `flutter pub get`.
 - Add `RECORD_AUDIO`, `CAMERA`, `MODIFY_AUDIO_SETTINGS`, `BLUETOOTH` permissions to `android/app/src/main/AndroidManifest.xml`, and `NSMicrophoneUsageDescription` to `ios/Runner/Info.plist`.
 - Implement `lib/core/services/webrtc_service.dart` encapsulating `RTCPeerConnection`, `MediaStream`, STUN (`stun:stun.l.google.com:19302`) + TURN `iceServers` setup, `setMicrophoneEnabled(bool)` for PTT track gating, and clean `dispose()`.
@@ -456,7 +456,7 @@ Expected: PASS.
 Run: `flutter analyze`
 Expected: "No issues found!".
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add pubspec.yaml pubspec.lock android/app/src/main/AndroidManifest.xml ios/Runner/Info.plist lib/core/services/webrtc_service.dart test/webrtc_service_test.dart
 git commit -m "feat(webrtc): add flutter_webrtc, native audio/camera permissions, and WebRtcService"

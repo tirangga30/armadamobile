@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.armada.mobile.armada_mobile"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

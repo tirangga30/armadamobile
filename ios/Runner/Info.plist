@@ -5,7 +5,9 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Aplikasi membutuhkan akses kamera untuk mengambil foto fisik bukti serah terima pengiriman (POD).</string>
+	<string>Aplikasi membutuhkan akses kamera untuk mengambil foto fisik bukti serah terima pengiriman (POD) dan panggilan video.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Aplikasi membutuhkan akses mikrofon untuk fitur PTT Walkie-Talkie dan panggilan suara/video.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Aplikasi membutuhkan akses galeri foto untuk memilih bukti serah terima pengiriman.</string>
 	<key>LSApplicationQueriesSchemes</key>

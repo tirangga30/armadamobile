@@ -49,6 +49,8 @@ dependencies:
   socket_io_client: ^3.0.2
   encrypt: ^5.0.3
   crypto: ^3.0.8
+  flutter_webrtc: ^1.6.3
+  permission_handler: ^13.0.2
 
 dev_dependencies:
   flutter_test:
