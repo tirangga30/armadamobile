@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
+import 'package:uuid/uuid.dart';
 import '../config/app_config.dart';
 import '../storage/secure_storage_service.dart';
 import '../../data/models/realtime_envelope.dart';
@@ -11,12 +12,15 @@ class SocketRealtimeService {
   socket_io.Socket? _socket;
   bool _isConnected = false;
   final Set<String> _activeRooms = {};
+  final Map<String, int> _webrtcSeqCounters = {};
 
   final _locationController = StreamController<RealtimeLocationPayload>.broadcast();
   final _deliveryStatusController = StreamController<RealtimeDeliveryStatusPayload>.broadcast();
   final _emergencyController = StreamController<RealtimeEmergencyPayload>.broadcast();
   final _chatMessageController = StreamController<ChatMessageModel>.broadcast();
   final _chatMessageAckController = StreamController<Map<String, dynamic>>.broadcast();
+  final _callInviteController = StreamController<Map<String, dynamic>>.broadcast();
+  final _callRespondController = StreamController<Map<String, dynamic>>.broadcast();
   final _webrtcOfferController = StreamController<Map<String, dynamic>>.broadcast();
   final _webrtcAnswerController = StreamController<Map<String, dynamic>>.broadcast();
   final _webrtcIceCandidateController = StreamController<Map<String, dynamic>>.broadcast();
@@ -31,6 +35,8 @@ class SocketRealtimeService {
   Stream<RealtimeEmergencyPayload> get emergencyStream => _emergencyController.stream;
   Stream<ChatMessageModel> get chatMessageStream => _chatMessageController.stream;
   Stream<Map<String, dynamic>> get chatMessageAckStream => _chatMessageAckController.stream;
+  Stream<Map<String, dynamic>> get callInviteStream => _callInviteController.stream;
+  Stream<Map<String, dynamic>> get callRespondStream => _callRespondController.stream;
   Stream<Map<String, dynamic>> get webrtcOfferStream => _webrtcOfferController.stream;
   Stream<Map<String, dynamic>> get webrtcAnswerStream => _webrtcAnswerController.stream;
   Stream<Map<String, dynamic>> get webrtcIceCandidateStream => _webrtcIceCandidateController.stream;
@@ -149,12 +155,54 @@ class SocketRealtimeService {
       }
     });
 
+    // Event 5a: WebRTC Call Invite
+    _socket!.on('webrtc.call.invite', (data) {
+      try {
+        if (data is Map) {
+          final raw = Map<String, dynamic>.from(data);
+          final payload = raw['payload'] is Map
+              ? Map<String, dynamic>.from(raw['payload'] as Map)
+              : Map<String, dynamic>.from(raw);
+          if (raw['actor'] is Map) {
+            payload['_actorUserId'] = (raw['actor'] as Map)['userId']?.toString();
+          }
+          _callInviteController.add(payload);
+        }
+      } catch (e) {
+        debugPrint('Error parsing webrtc.call.invite: $e');
+      }
+    });
+
+    // Event 5b: WebRTC Call Respond
+    _socket!.on('webrtc.call.respond', (data) {
+      try {
+        if (data is Map) {
+          final raw = Map<String, dynamic>.from(data);
+          final payload = raw['payload'] is Map
+              ? Map<String, dynamic>.from(raw['payload'] as Map)
+              : Map<String, dynamic>.from(raw);
+          if (raw['actor'] is Map) {
+            payload['_actorUserId'] = (raw['actor'] as Map)['userId']?.toString();
+          }
+          _callRespondController.add(payload);
+        }
+      } catch (e) {
+        debugPrint('Error parsing webrtc.call.respond: $e');
+      }
+    });
+
     // Event 5: WebRTC Offer
     _socket!.on('webrtc.signal.offer', (data) {
       try {
-        if (data is Map<String, dynamic>) {
-          final payload = data['payload'] is Map<String, dynamic> ? data['payload'] : data;
-          _webrtcOfferController.add(payload as Map<String, dynamic>);
+        if (data is Map) {
+          final raw = Map<String, dynamic>.from(data);
+          final payload = raw['payload'] is Map
+              ? Map<String, dynamic>.from(raw['payload'] as Map)
+              : Map<String, dynamic>.from(raw);
+          if (raw['actor'] is Map) {
+            payload['_actorUserId'] = (raw['actor'] as Map)['userId']?.toString();
+          }
+          _webrtcOfferController.add(payload);
         }
       } catch (e) {
         debugPrint('Error parsing webrtc.signal.offer: $e');
@@ -164,9 +212,15 @@ class SocketRealtimeService {
     // Event 6: WebRTC Answer
     _socket!.on('webrtc.signal.answer', (data) {
       try {
-        if (data is Map<String, dynamic>) {
-          final payload = data['payload'] is Map<String, dynamic> ? data['payload'] : data;
-          _webrtcAnswerController.add(payload as Map<String, dynamic>);
+        if (data is Map) {
+          final raw = Map<String, dynamic>.from(data);
+          final payload = raw['payload'] is Map
+              ? Map<String, dynamic>.from(raw['payload'] as Map)
+              : Map<String, dynamic>.from(raw);
+          if (raw['actor'] is Map) {
+            payload['_actorUserId'] = (raw['actor'] as Map)['userId']?.toString();
+          }
+          _webrtcAnswerController.add(payload);
         }
       } catch (e) {
         debugPrint('Error parsing webrtc.signal.answer: $e');
@@ -176,9 +230,15 @@ class SocketRealtimeService {
     // Event 7: WebRTC ICE Candidate
     _socket!.on('webrtc.signal.ice_candidate', (data) {
       try {
-        if (data is Map<String, dynamic>) {
-          final payload = data['payload'] is Map<String, dynamic> ? data['payload'] : data;
-          _webrtcIceCandidateController.add(payload as Map<String, dynamic>);
+        if (data is Map) {
+          final raw = Map<String, dynamic>.from(data);
+          final payload = raw['payload'] is Map
+              ? Map<String, dynamic>.from(raw['payload'] as Map)
+              : Map<String, dynamic>.from(raw);
+          if (raw['actor'] is Map) {
+            payload['_actorUserId'] = (raw['actor'] as Map)['userId']?.toString();
+          }
+          _webrtcIceCandidateController.add(payload);
         }
       } catch (e) {
         debugPrint('Error parsing webrtc.signal.ice_candidate: $e');
@@ -188,8 +248,13 @@ class SocketRealtimeService {
     // Event 8: WebRTC Call Ended
     _socket!.on('webrtc.call.ended', (data) {
       try {
-        final sessionId = data is Map ? (data['sessionId']?.toString() ?? '') : data.toString();
-        _webrtcCallEndedController.add(sessionId);
+        if (data is Map) {
+          final payload = data['payload'] is Map ? data['payload'] as Map : data;
+          final sessionId = payload['sessionId']?.toString() ?? data['sessionId']?.toString() ?? '';
+          _webrtcCallEndedController.add(sessionId);
+        } else {
+          _webrtcCallEndedController.add(data.toString());
+        }
       } catch (e) {
         debugPrint('Error parsing webrtc.call.ended: $e');
       }
@@ -220,16 +285,65 @@ class SocketRealtimeService {
   /*                             WEBRTC SIGNALING                               */
   /* -------------------------------------------------------------------------- */
 
-  void sendWebrtcOffer(String sessionId, Map<String, dynamic> sdp) {
-    _socket?.emit('webrtc.signal.offer', {'sessionId': sessionId, 'sdp': sdp});
+  int _nextSeq(String sessionId) {
+    final next = (_webrtcSeqCounters[sessionId] ?? 0) + 1;
+    _webrtcSeqCounters[sessionId] = next;
+    return next;
   }
 
-  void sendWebrtcAnswer(String sessionId, Map<String, dynamic> sdp) {
-    _socket?.emit('webrtc.signal.answer', {'sessionId': sessionId, 'sdp': sdp});
+  Map<String, dynamic> buildSignalingOfferPayload(String sessionId, dynamic sdp) {
+    final sdpStr = sdp is Map ? (sdp['sdp']?.toString() ?? '') : sdp.toString();
+    return {
+      'sessionId': sessionId,
+      'sdp': sdpStr,
+      'nonce': const Uuid().v4(),
+      'seq': _nextSeq(sessionId),
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    };
+  }
+
+  Map<String, dynamic> buildSignalingAnswerPayload(String sessionId, dynamic sdp) {
+    final sdpStr = sdp is Map ? (sdp['sdp']?.toString() ?? '') : sdp.toString();
+    return {
+      'sessionId': sessionId,
+      'sdp': sdpStr,
+      'nonce': const Uuid().v4(),
+      'seq': _nextSeq(sessionId),
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    };
+  }
+
+  Map<String, dynamic> buildSignalingIceCandidatePayload(
+      String sessionId, Map<String, dynamic> candidate) {
+    return {
+      'sessionId': sessionId,
+      'candidate': candidate,
+      'nonce': const Uuid().v4(),
+      'seq': _nextSeq(sessionId),
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    };
+  }
+
+  void sendCallRespond(String sessionId, String action) {
+    _socket?.emit('webrtc.call.respond', {
+      'sessionId': sessionId,
+      'action': action,
+    });
+  }
+
+  void sendWebrtcOffer(String sessionId, dynamic sdp) {
+    _socket?.emit('webrtc.signal.offer', buildSignalingOfferPayload(sessionId, sdp));
+  }
+
+  void sendWebrtcAnswer(String sessionId, dynamic sdp) {
+    _socket?.emit('webrtc.signal.answer', buildSignalingAnswerPayload(sessionId, sdp));
   }
 
   void sendWebrtcIceCandidate(String sessionId, Map<String, dynamic> candidate) {
-    _socket?.emit('webrtc.signal.ice_candidate', {'sessionId': sessionId, 'candidate': candidate});
+    _socket?.emit(
+      'webrtc.signal.ice_candidate',
+      buildSignalingIceCandidatePayload(sessionId, candidate),
+    );
   }
 
   void hangupCall(String sessionId) {
@@ -271,6 +385,8 @@ class SocketRealtimeService {
     _emergencyController.close();
     _chatMessageController.close();
     _chatMessageAckController.close();
+    _callInviteController.close();
+    _callRespondController.close();
     _webrtcOfferController.close();
     _webrtcAnswerController.close();
     _webrtcIceCandidateController.close();

@@ -481,7 +481,7 @@ git commit -m "feat(webrtc): add flutter_webrtc, native audio/camera permissions
   - Anti-replay WebRTC emitters: `sendWebrtcOffer(String sessionId, String sdp)`, `sendWebrtcAnswer(String sessionId, String sdp)`, `sendWebrtcIceCandidate(String sessionId, Map<String, dynamic> candidate)`, `sendCallRespond(String sessionId, String action)`
   - `CallSessionScreen` widget supporting Audio PTT (`VOICE_PTT`) and Video (`VIDEO`) sessions.
 
-- [ ] **Step 1: Write failing test in `test/real_webrtc_call_test.dart`**
+- [x] **Step 1: Write failing test in `test/real_webrtc_call_test.dart`**
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -534,7 +534,7 @@ void main() {
 Run: `flutter test test/real_webrtc_call_test.dart`
 Expected: FAIL with missing `callInviteStream`, `buildSignalingOfferPayload`, and `call_session_screen.dart`.
 
-- [ ] **Step 3: Enhance `SocketRealtimeService`, create `CallSessionScreen`, wire `DriverShell` and Owner detail**
+- [x] **Step 3: Enhance `SocketRealtimeService`, create `CallSessionScreen`, wire `DriverShell` and Owner detail**
 - In `lib/core/services/socket_realtime_service.dart`:
   * Listen to `webrtc.call.invite` and `webrtc.call.respond` events.
   * Update `sendWebrtcOffer`, `sendWebrtcAnswer`, `sendWebrtcIceCandidate` to embed `nonce` (UUIDv4), incrementing `seq` ($\ge 1$), and `timestamp` (epoch ms).
@@ -557,7 +557,7 @@ Expected: "No issues found!".
 Run full suite: `flutter test`
 Expected: 100% pass.
 
-- [ ] **Step 5: Android Emulator End-to-End Verification & Commit**
+- [x] **Step 5: Android Emulator End-to-End Verification & Commit**
 Verify on `emulator-5554` (`flutter run -d emulator-5554`):
 1. Login as Owner -> Create DO -> Assign Driver -> Optimize Route 2-Opt -> Send E2EE Chat -> Initiate PTT Voice call.
 2. Login as Driver -> View assigned DO -> View OSRM polyline -> Open Chat Inbox & reply -> Accept incoming PTT call & toggle mic.

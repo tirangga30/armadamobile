@@ -2,11 +2,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/config/theme.dart';
+import '../../core/network/dio_client.dart';
 import '../../core/services/socket_realtime_service.dart';
+import '../../core/storage/secure_storage_service.dart';
 import '../../core/widgets/emergency_alert_banner.dart';
 import '../../data/models/realtime_envelope.dart';
+import '../../data/models/webrtc_session_model.dart';
+import '../../data/repositories/armada_api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/driver_tracking_provider.dart';
+import '../communication/call_session_screen.dart';
+import '../communication/widgets/incoming_call_dialog.dart';
 import 'views/driver_home_view.dart';
 import 'views/driver_tracking_view.dart';
 import 'views/driver_sos_view.dart';
@@ -23,6 +29,8 @@ class _DriverShellState extends State<DriverShell> {
   int _currentIndex = 0;
   RealtimeEmergencyPayload? _activeEmergencyAlert;
   StreamSubscription? _emergencySub;
+  StreamSubscription? _callInviteSub;
+  bool _showingCallDialog = false;
 
   final List<Widget> _views = const [
     DriverHomeView(),
@@ -45,6 +53,10 @@ class _DriverShellState extends State<DriverShell> {
       try {
         final socketService = context.read<SocketRealtimeService>();
         socketService.connect();
+        final driverId = user?.effectiveDriverId;
+        if (driverId != null && driverId.isNotEmpty) {
+          socketService.joinRoom('driver:$driverId');
+        }
         _emergencySub = socketService.emergencyStream.listen((alert) {
           if (mounted) {
             setState(() {
@@ -52,15 +64,108 @@ class _DriverShellState extends State<DriverShell> {
             });
           }
         });
+        _callInviteSub = socketService.callInviteStream.listen((invite) {
+          _handleIncomingCallInvite(invite, socketService);
+        });
       } catch (e) {
         debugPrint('Socket service connect notice in DriverShell: $e');
       }
     });
   }
 
+  void _handleIncomingCallInvite(
+    Map<String, dynamic> invite,
+    SocketRealtimeService socketService,
+  ) {
+    if (!mounted || _showingCallDialog) return;
+    final sessionId = invite['sessionId']?.toString() ?? '';
+    if (sessionId.isEmpty) return;
+
+    final type = invite['type']?.toString() ?? 'VOICE_PTT';
+    final driverId = invite['driverId']?.toString() ?? '';
+    final deliveryId = invite['deliveryId']?.toString();
+    final turnRaw = invite['turnCredentials'];
+    TurnCredentialsModel? turnCredentials;
+    if (turnRaw is Map) {
+      turnCredentials = TurnCredentialsModel.fromJson(
+        Map<String, dynamic>.from(turnRaw),
+      );
+    }
+
+    _showingCallDialog = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => IncomingCallDialog(
+        callerName: 'Pusat Armada (Owner)',
+        callType: type,
+        deliveryId: deliveryId,
+        onAccept: () async {
+          Navigator.of(dialogCtx).pop();
+          _showingCallDialog = false;
+
+          ArmadaApiService api;
+          try {
+            api = context.read<ArmadaApiService>();
+          } catch (_) {
+            api = ArmadaApiService(
+              client: DioClient(storageService: SecureStorageService()),
+            );
+          }
+
+          try {
+            await api.respondToCallSession(sessionId, action: 'ACCEPT');
+          } catch (_) {}
+
+          socketService.sendCallRespond(sessionId, 'ACCEPT');
+          socketService.joinRoom('session:$sessionId');
+
+          if (mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => CallSessionScreen(
+                  session: CallSessionModel(
+                    sessionId: sessionId,
+                    type: type,
+                    ownerId: invite['_actorUserId']?.toString() ?? '',
+                    driverId: driverId,
+                    driverName: 'Pusat Armada (Owner)',
+                    status: 'ACTIVE',
+                    deliveryId: deliveryId,
+                    turnCredentials: turnCredentials,
+                  ),
+                  isCaller: false,
+                ),
+              ),
+            );
+          }
+        },
+        onDecline: () async {
+          Navigator.of(dialogCtx).pop();
+          _showingCallDialog = false;
+
+          ArmadaApiService api;
+          try {
+            api = context.read<ArmadaApiService>();
+          } catch (_) {
+            api = ArmadaApiService(
+              client: DioClient(storageService: SecureStorageService()),
+            );
+          }
+
+          try {
+            await api.respondToCallSession(sessionId, action: 'DECLINE');
+          } catch (_) {}
+          socketService.sendCallRespond(sessionId, 'DECLINE');
+        },
+      ),
+    ).then((_) => _showingCallDialog = false);
+  }
+
   @override
   void dispose() {
     _emergencySub?.cancel();
+    _callInviteSub?.cancel();
     super.dispose();
   }
 

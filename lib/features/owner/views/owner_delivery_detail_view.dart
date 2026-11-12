@@ -6,12 +6,13 @@ import '../../../data/models/delivery_model.dart';
 import '../../../data/models/create_delivery_dto.dart';
 import '../../../data/models/route_geometry_model.dart';
 import '../../../data/models/chat_model.dart';
+import '../../../data/models/webrtc_session_model.dart';
 import '../../../data/repositories/armada_api_service.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../providers/fleet_provider.dart';
 import '../../chat/chat_conversation_view.dart';
-import '../../communication/widgets/ptt_walkie_talkie_button.dart';
+import '../../communication/call_session_screen.dart';
 import '../widgets/assign_driver_modal_sheet.dart';
 import '../widgets/route_optimizer_sheet.dart';
 
@@ -90,6 +91,55 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
         },
       ),
     );
+  }
+
+  Future<void> _initiateCallSession(
+    BuildContext context,
+    DeliveryModel item,
+    String callType,
+  ) async {
+    final driverId = item.driverId;
+    if (driverId == null || driverId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ID driver tidak ditemukan pada order ini.')),
+      );
+      return;
+    }
+
+    ArmadaApiService api;
+    try {
+      api = context.read<ArmadaApiService>();
+    } catch (_) {
+      api = ArmadaApiService(
+        client: DioClient(storageService: SecureStorageService()),
+      );
+    }
+
+    try {
+      final CallSessionModel session = callType == 'VIDEO'
+          ? await api.initiateVideoSession(driverId, deliveryId: item.id)
+          : await api.initiateVoiceSession(driverId, deliveryId: item.id);
+
+      if (context.mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CallSessionScreen(
+              session: session,
+              isCaller: true,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memulai panggilan: $e'),
+            backgroundColor: AppTheme.statusDanger,
+          ),
+        );
+      }
+    }
   }
 
   void _openRouteOptimizerSheet(BuildContext context) {
@@ -432,58 +482,31 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => Dialog(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(24),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'PTT Walkie-Talkie',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 16,
-                                          color: AppTheme.textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Tekan tombol untuk transmisi suara instan ke ${item.assignedDriver}.',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 12,
-                                          color: AppTheme.textSecondary,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      PttWalkieTalkieButton(
-                                        onPressStart: () {},
-                                        onPressEnd: () {},
-                                      ),
-                                      const SizedBox(height: 16),
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(ctx),
-                                        child: const Text('Tutup'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
+                          onPressed: () => _initiateCallSession(context, item, 'VOICE_PTT'),
                           icon: const Icon(Icons.radio_rounded, size: 16),
                           label: const Text('PTT Voice'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.statusSuccess,
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _initiateCallSession(context, item, 'VIDEO'),
+                      icon: const Icon(Icons.videocam_rounded, size: 16),
+                      label: const Text('Video Call Pengiriman'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryBlue,
+                        side: const BorderSide(color: AppTheme.primaryBlue),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
                   ),
                 ] else ...[
                   Row(
