@@ -512,7 +512,12 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
         ? matching.first.stops.map((s) => s.destinationName).toList()
         : <String>['Warehouse Cakung', 'Toko Tujuan'];
 
-    final api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+    ArmadaApiService api;
+    try {
+      api = context.read<ArmadaApiService>();
+    } catch (_) {
+      api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+    }
 
     showModalBottomSheet(
       context: context,

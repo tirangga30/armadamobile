@@ -31,6 +31,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        Provider<ArmadaApiService>.value(value: apiService),
         Provider<SocketRealtimeService>.value(value: socketService),
         Provider<LocalOutboxService>.value(value: outboxService),
         ChangeNotifierProvider<AuthProvider>(

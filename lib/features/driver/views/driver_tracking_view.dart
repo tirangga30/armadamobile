@@ -37,7 +37,12 @@ class _DriverTrackingViewState extends State<DriverTrackingView> {
   Future<void> _fetchRoadPolyline(String deliveryId) async {
     if (_loadedDeliveryId == deliveryId && _roadPolylinePoints != null) return;
     _loadedDeliveryId = deliveryId;
-    final api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+    ArmadaApiService api;
+    try {
+      api = context.read<ArmadaApiService>();
+    } catch (_) {
+      api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+    }
     try {
       final routeGeo = await api.getCurrentDeliveryRoute(deliveryId);
       if (routeGeo != null && routeGeo.polylinePoints.isNotEmpty && mounted) {

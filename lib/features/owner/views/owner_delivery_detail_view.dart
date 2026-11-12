@@ -95,7 +95,12 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
   void _openRouteOptimizerSheet(BuildContext context) {
     final stopIds = _currentDelivery.stops.map((s) => s.id).toList();
     final stopNames = _currentDelivery.stops.map((s) => s.destinationName).toList();
-    final api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+    ArmadaApiService api;
+    try {
+      api = context.read<ArmadaApiService>();
+    } catch (_) {
+      api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+    }
 
     showModalBottomSheet(
       context: context,
