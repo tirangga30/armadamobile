@@ -6,6 +6,9 @@ import '../../../data/models/delivery_model.dart';
 import '../../../data/models/create_delivery_dto.dart';
 import '../../../data/models/route_geometry_model.dart';
 import '../../../data/models/chat_model.dart';
+import '../../../data/repositories/armada_api_service.dart';
+import '../../../core/network/dio_client.dart';
+import '../../../core/storage/secure_storage_service.dart';
 import '../../../providers/fleet_provider.dart';
 import '../../chat/chat_conversation_view.dart';
 import '../../communication/widgets/ptt_walkie_talkie_button.dart';
@@ -90,6 +93,10 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
   }
 
   void _openRouteOptimizerSheet(BuildContext context) {
+    final stopIds = _currentDelivery.stops.map((s) => s.id).toList();
+    final stopNames = _currentDelivery.stops.map((s) => s.destinationName).toList();
+    final api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -98,16 +105,19 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
         deliveryId: _currentDelivery.id,
         currentDistanceM: 14500,
         currentDurationS: 2100,
-        recommendedDistanceM: 12000,
-        recommendedDurationS: 1750,
-        reorderedStopNames: _currentDelivery.stops.map((s) => s.destinationName).toList(),
+        reorderedStopNames: stopNames,
+        recommendedStopIds: stopIds,
+        apiService: api,
         onApply: (SelectRouteDto dto) async {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Rute rekomendasi 2-Opt berhasil diterapkan!'),
-              backgroundColor: AppTheme.statusSuccess,
-            ),
-          );
+          await api.selectDeliveryRoute(_currentDelivery.id, dto);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Rute rekomendasi 2-Opt berhasil diterapkan!'),
+                backgroundColor: AppTheme.statusSuccess,
+              ),
+            );
+          }
         },
       ),
     );

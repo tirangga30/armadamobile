@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/config/theme.dart';
 import '../../../data/models/route_geometry_model.dart';
+import '../../../data/repositories/armada_api_service.dart';
 
 typedef RouteApplyCallback = Future<void> Function(SelectRouteDto dto);
 
@@ -12,8 +13,8 @@ class RouteOptimizerSheet extends StatefulWidget {
   final double recommendedDistanceM;
   final int recommendedDurationS;
   final List<String> reorderedStopNames;
-  final List<Map<String, dynamic>>? recommendedSequence;
-  final int routeVersion;
+  final List<String> recommendedStopIds;
+  final ArmadaApiService? apiService;
   final RouteApplyCallback onApply;
 
   const RouteOptimizerSheet({
@@ -24,8 +25,8 @@ class RouteOptimizerSheet extends StatefulWidget {
     this.recommendedDistanceM = 0,
     this.recommendedDurationS = 0,
     this.reorderedStopNames = const [],
-    this.recommendedSequence,
-    this.routeVersion = 1,
+    this.recommendedStopIds = const [],
+    this.apiService,
     required this.onApply,
   });
 
@@ -35,6 +36,53 @@ class RouteOptimizerSheet extends StatefulWidget {
 
 class _RouteOptimizerSheetState extends State<RouteOptimizerSheet> {
   bool _isApplying = false;
+  bool _isLoadingRecommendation = false;
+  double _currentDistanceM = 0;
+  int _currentDurationS = 0;
+  double _recommendedDistanceM = 0;
+  int _recommendedDurationS = 0;
+  List<String> _reorderedStopNames = [];
+  List<String> _recommendedStopIds = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentDistanceM = widget.currentDistanceM;
+    _currentDurationS = widget.currentDurationS;
+    _recommendedDistanceM = widget.recommendedDistanceM;
+    _recommendedDurationS = widget.recommendedDurationS;
+    _reorderedStopNames = List.from(widget.reorderedStopNames);
+    _recommendedStopIds = List.from(widget.recommendedStopIds);
+
+    if (_recommendedDistanceM <= 0 && widget.apiService != null) {
+      _fetchRecommendation();
+    }
+  }
+
+  Future<void> _fetchRecommendation() async {
+    setState(() => _isLoadingRecommendation = true);
+    try {
+      final raw = await widget.apiService!.getRecommendedRoute(widget.deliveryId);
+      final parsed = RecommendRouteResponse.fromJson(raw);
+      if (mounted) {
+        setState(() {
+          _recommendedDistanceM = parsed.totalDistanceMeters;
+          _recommendedDurationS = parsed.estimatedDurationSeconds;
+          if (parsed.recommendedStopIds.isNotEmpty) {
+            _recommendedStopIds = parsed.recommendedStopIds;
+          }
+          if (parsed.recommendedStopNames.isNotEmpty) {
+            _reorderedStopNames = parsed.recommendedStopNames;
+          }
+          _isLoadingRecommendation = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingRecommendation = false);
+      }
+    }
+  }
 
   String _formatDistance(double meters) {
     if (meters >= 1000) {
@@ -54,26 +102,20 @@ class _RouteOptimizerSheetState extends State<RouteOptimizerSheet> {
   }
 
   double get _savingsPercentage {
-    if (widget.currentDistanceM <= 0) return 0;
-    final diff = widget.currentDistanceM - widget.recommendedDistanceM;
+    if (_currentDistanceM <= 0 || _recommendedDistanceM <= 0) return 0;
+    final diff = _currentDistanceM - _recommendedDistanceM;
     if (diff <= 0) return 0;
-    return (diff / widget.currentDistanceM) * 100;
+    return (diff / _currentDistanceM) * 100;
   }
 
   Future<void> _handleApply() async {
     setState(() => _isApplying = true);
     try {
       final dto = SelectRouteDto(
-        routeVersion: widget.routeVersion,
         source: 'RECOMMENDED_2OPT',
-        recommendedSequence: widget.recommendedSequence ??
-            widget.reorderedStopNames
-                .asMap()
-                .entries
-                .map((e) => {'sequence': e.key + 1, 'name': e.value})
-                .toList(),
-        totalDistanceMeters: widget.recommendedDistanceM,
-        estimatedDurationSeconds: widget.recommendedDurationS,
+        recommendedSequence: _recommendedStopIds,
+        totalDistanceMeters: _recommendedDistanceM,
+        estimatedDurationSeconds: _recommendedDurationS,
       );
       await widget.onApply(dto);
       if (mounted) {
@@ -187,7 +229,7 @@ class _RouteOptimizerSheetState extends State<RouteOptimizerSheet> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _formatDistance(widget.currentDistanceM),
+                          _formatDistance(_currentDistanceM),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
@@ -195,7 +237,7 @@ class _RouteOptimizerSheetState extends State<RouteOptimizerSheet> {
                           ),
                         ),
                         Text(
-                          _formatDuration(widget.currentDurationS),
+                          _formatDuration(_currentDurationS),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: const Color(0xFF64748B),
@@ -250,22 +292,36 @@ class _RouteOptimizerSheetState extends State<RouteOptimizerSheet> {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          _formatDistance(widget.recommendedDistanceM),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.statusSuccess,
-                          ),
-                        ),
-                        Text(
-                          _formatDuration(widget.recommendedDurationS),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            color: AppTheme.statusSuccess,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        _isLoadingRecommendation
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 4),
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _formatDistance(_recommendedDistanceM),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.statusSuccess,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatDuration(_recommendedDurationS),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      color: AppTheme.statusSuccess,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ],
                     ),
                   ),
@@ -286,7 +342,7 @@ class _RouteOptimizerSheetState extends State<RouteOptimizerSheet> {
             ),
             const SizedBox(height: 8),
 
-            if (widget.reorderedStopNames.isEmpty)
+            if (_reorderedStopNames.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
@@ -298,7 +354,7 @@ class _RouteOptimizerSheetState extends State<RouteOptimizerSheet> {
                 ),
               )
             else
-              ...widget.reorderedStopNames.asMap().entries.map((entry) {
+              ..._reorderedStopNames.asMap().entries.map((entry) {
                 final idx = entry.key + 1;
                 final name = entry.value;
 

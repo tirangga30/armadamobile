@@ -77,29 +77,26 @@ class RouteGeometryModel {
 
 /// Request DTO for selecting route sequence via POST /v1/deliveries/:id/routes/select
 class SelectRouteDto {
-  final int routeVersion;
-  final String source;
-  final List<dynamic> recommendedSequence;
-  final double? totalDistanceMeters;
-  final int? estimatedDurationSeconds;
+  final String source; // 'MANUAL', 'RECOMMENDED_2OPT', 'EXTERNAL_OSRM'
+  final List<String> recommendedSequence;
+  final double totalDistanceMeters;
+  final int estimatedDurationSeconds;
   final String? idempotencyKey;
 
   SelectRouteDto({
-    required this.routeVersion,
     required this.source,
     required this.recommendedSequence,
-    this.totalDistanceMeters,
-    this.estimatedDurationSeconds,
+    required this.totalDistanceMeters,
+    required this.estimatedDurationSeconds,
     this.idempotencyKey,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      'routeVersion': routeVersion,
       'source': source,
       'recommendedSequence': recommendedSequence,
-      if (totalDistanceMeters != null) 'totalDistanceMeters': totalDistanceMeters,
-      if (estimatedDurationSeconds != null) 'estimatedDurationSeconds': estimatedDurationSeconds,
+      'totalDistanceMeters': totalDistanceMeters,
+      'estimatedDurationSeconds': estimatedDurationSeconds,
       if (idempotencyKey != null) 'idempotencyKey': idempotencyKey,
     };
   }
@@ -108,6 +105,7 @@ class SelectRouteDto {
 /// Recommendation response returned by POST /v1/deliveries/:id/routes/recommend
 class RecommendRouteResponse {
   final String deliveryId;
+  final String algorithm;
   final String provider;
   final double totalDistanceMeters;
   final int estimatedDurationSeconds;
@@ -116,12 +114,31 @@ class RecommendRouteResponse {
 
   RecommendRouteResponse({
     required this.deliveryId,
+    this.algorithm = '2-Opt',
     required this.provider,
     required this.totalDistanceMeters,
     required this.estimatedDurationSeconds,
     required this.polylinePoints,
     required this.recommendedSequence,
   });
+
+  List<String> get recommendedStopIds {
+    return recommendedSequence.map((item) {
+      if (item is Map) {
+        return item['deliveryStopId']?.toString() ?? item['stopId']?.toString() ?? '';
+      }
+      return item.toString();
+    }).where((id) => id.isNotEmpty).toList();
+  }
+
+  List<String> get recommendedStopNames {
+    return recommendedSequence.map((item) {
+      if (item is Map) {
+        return item['destinationName']?.toString() ?? item['name']?.toString() ?? 'Stop';
+      }
+      return item.toString();
+    }).toList();
+  }
 
   factory RecommendRouteResponse.fromJson(Map<String, dynamic> json) {
     final List<LatLng> points = [];
@@ -147,7 +164,8 @@ class RecommendRouteResponse {
 
     return RecommendRouteResponse(
       deliveryId: json['deliveryId']?.toString() ?? '',
-      provider: json['provider']?.toString() ?? 'osrm',
+      algorithm: json['algorithm']?.toString() ?? '2-Opt',
+      provider: json['providerUsed']?.toString() ?? json['provider']?.toString() ?? 'osrm',
       totalDistanceMeters: (json['totalDistanceMeters'] as num?)?.toDouble() ?? 0.0,
       estimatedDurationSeconds: (json['estimatedDurationSeconds'] as num?)?.toInt() ?? 0,
       polylinePoints: points,

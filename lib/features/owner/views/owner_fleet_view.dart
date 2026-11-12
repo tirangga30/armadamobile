@@ -7,6 +7,9 @@ import '../../../core/config/theme.dart';
 import '../../../core/widgets/armada_osm_map.dart';
 import '../../../data/models/fleet_driver_model.dart';
 import '../../../data/models/route_geometry_model.dart';
+import '../../../data/repositories/armada_api_service.dart';
+import '../../../core/network/dio_client.dart';
+import '../../../core/storage/secure_storage_service.dart';
 import '../../../providers/fleet_provider.dart';
 import '../widgets/route_optimizer_sheet.dart';
 
@@ -502,6 +505,15 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
   }
 
   void _openRouteOptimizer(String deliveryId) {
+    final fleet = context.read<FleetProvider>();
+    final matching = fleet.deliveries.where((d) => d.id == deliveryId);
+    final stopIds = matching.isNotEmpty ? matching.first.stops.map((s) => s.id).toList() : <String>[];
+    final stopNames = matching.isNotEmpty
+        ? matching.first.stops.map((s) => s.destinationName).toList()
+        : <String>['Warehouse Cakung', 'Toko Tujuan'];
+
+    final api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -510,27 +522,37 @@ class _OwnerFleetViewState extends State<OwnerFleetView> {
         deliveryId: deliveryId,
         currentDistanceM: 14500,
         currentDurationS: 2200,
-        recommendedDistanceM: 12100,
-        recommendedDurationS: 1800,
-        reorderedStopNames: const ['Warehouse Cakung', 'Toko Sumber Rejeki', 'Supermarket Puri'],
+        reorderedStopNames: stopNames,
+        recommendedStopIds: stopIds,
+        apiService: api,
         onApply: (SelectRouteDto dto) async {
-          setState(() {
-            _routePolylines = [
-              ArmadaOsmMap.buildRoutePolyline(
-                points: const [
-                  LatLng(-6.1950, 106.9400),
-                  LatLng(-6.1800, 106.8500),
-                  LatLng(-6.2088, 106.8456),
-                ],
+          await api.selectDeliveryRoute(deliveryId, dto);
+          final routeGeo = await api.getCurrentDeliveryRoute(deliveryId);
+          if (mounted) {
+            setState(() {
+              if (routeGeo != null && routeGeo.polylinePoints.isNotEmpty) {
+                _routePolylines = [
+                  ArmadaOsmMap.buildRoutePolyline(points: routeGeo.polylinePoints),
+                ];
+              } else {
+                _routePolylines = [
+                  ArmadaOsmMap.buildRoutePolyline(
+                    points: const [
+                      LatLng(-6.1950, 106.9400),
+                      LatLng(-6.1800, 106.8500),
+                      LatLng(-6.2088, 106.8456),
+                    ],
+                  ),
+                ];
+              }
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Rute rekomendasi 2-Opt berhasil diterapkan ke pengiriman!'),
+                backgroundColor: AppTheme.statusSuccess,
               ),
-            ];
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Rute rekomendasi 2-Opt berhasil diterapkan ke pengiriman!'),
-              backgroundColor: AppTheme.statusSuccess,
-            ),
-          );
+            );
+          }
         },
       ),
     );

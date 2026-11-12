@@ -5,6 +5,9 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:provider/provider.dart';
 import '../../../core/config/theme.dart';
 import '../../../core/widgets/armada_osm_map.dart';
+import '../../../core/network/dio_client.dart';
+import '../../../core/storage/secure_storage_service.dart';
+import '../../../data/repositories/armada_api_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/driver_tracking_provider.dart';
 
@@ -16,6 +19,9 @@ class DriverTrackingView extends StatefulWidget {
 }
 
 class _DriverTrackingViewState extends State<DriverTrackingView> {
+  List<LatLng>? _roadPolylinePoints;
+  String? _loadedDeliveryId;
+
   @override
   void initState() {
     super.initState();
@@ -26,6 +32,20 @@ class _DriverTrackingViewState extends State<DriverTrackingView> {
         tracking.loadDriverDeliveries(driverId: user?.effectiveDriverId);
       }
     });
+  }
+
+  Future<void> _fetchRoadPolyline(String deliveryId) async {
+    if (_loadedDeliveryId == deliveryId && _roadPolylinePoints != null) return;
+    _loadedDeliveryId = deliveryId;
+    final api = ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+    try {
+      final routeGeo = await api.getCurrentDeliveryRoute(deliveryId);
+      if (routeGeo != null && routeGeo.polylinePoints.isNotEmpty && mounted) {
+        setState(() {
+          _roadPolylinePoints = routeGeo.polylinePoints;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -80,12 +100,12 @@ class _DriverTrackingViewState extends State<DriverTrackingView> {
         orElse: () => tracking.assignedDeliveries.first,
       );
 
+      _fetchRoadPolyline(activeDelivery.id);
+
       if (activeDelivery.stops.isNotEmpty) {
-        final List<LatLng> routePoints = [displayDriverLatLng];
         for (final s in activeDelivery.stops) {
           if (s.latitude != null && s.longitude != null) {
             final pt = LatLng(s.latitude!, s.longitude!);
-            routePoints.add(pt);
             mapMarkers.add(
               ArmadaOsmMap.buildStopMarker(
                 sequence: s.sequence,
@@ -96,8 +116,19 @@ class _DriverTrackingViewState extends State<DriverTrackingView> {
             );
           }
         }
-        if (routePoints.length > 1) {
-          polylines.add(ArmadaOsmMap.buildRoutePolyline(points: routePoints));
+
+        if (_roadPolylinePoints != null && _roadPolylinePoints!.isNotEmpty) {
+          polylines.add(ArmadaOsmMap.buildRoutePolyline(points: _roadPolylinePoints!));
+        } else {
+          final List<LatLng> fallbackPoints = [displayDriverLatLng];
+          for (final s in activeDelivery.stops) {
+            if (s.latitude != null && s.longitude != null) {
+              fallbackPoints.add(LatLng(s.latitude!, s.longitude!));
+            }
+          }
+          if (fallbackPoints.length > 1) {
+            polylines.add(ArmadaOsmMap.buildRoutePolyline(points: fallbackPoints));
+          }
         }
       }
     }

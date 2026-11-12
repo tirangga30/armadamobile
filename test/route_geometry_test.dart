@@ -34,17 +34,19 @@ void main() {
 
   test('SelectRouteDto serializes correctly with recommendedSequence', () {
     final dto = SelectRouteDto(
-      routeVersion: 2,
       source: 'RECOMMENDED_2OPT',
       recommendedSequence: [
-        {'stopId': 'st-1', 'sequence': 1},
-        {'stopId': 'st-2', 'sequence': 2},
+        '550e8400-e29b-41d4-a716-446655440001',
+        '550e8400-e29b-41d4-a716-446655440002',
       ],
+      totalDistanceMeters: 14250.5,
+      estimatedDurationSeconds: 1800,
     );
 
     final json = dto.toJson();
-    expect(json['routeVersion'], 2);
     expect(json['source'], 'RECOMMENDED_2OPT');
     expect(json['recommendedSequence'].length, 2);
+    expect(json['totalDistanceMeters'], 14250.5);
+    expect(json['estimatedDurationSeconds'], 1800);
   });
 }

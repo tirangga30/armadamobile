@@ -166,7 +166,7 @@ git commit -m "feat(owner): wire real createDelivery and assignDelivery API call
   - Live `RecommendRouteResponse` parsing including `List<String> recommendedStopIds`.
   - Dynamic OSRM route fetching & road-following polyline display in `DriverTrackingView`, `OwnerFleetView`, and `RouteOptimizerSheet`.
 
-- [ ] **Step 1: Write failing test in `test/real_route_optimization_test.dart`**
+- [x] **Step 1: Write failing test in `test/real_route_optimization_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/data/models/route_geometry_model.dart';
@@ -222,11 +222,11 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/real_route_optimization_test.dart`
 Expected: FAIL with missing getters `recommendedStopIds`, `recommendedStopNames`, and `SelectRouteDto` signature mismatch.
 
-- [ ] **Step 3: Update `route_geometry_model.dart`, `route_optimizer_sheet.dart`, and map views**
+- [x] **Step 3: Update `route_geometry_model.dart`, `route_optimizer_sheet.dart`, and map views**
 - In `lib/data/models/route_geometry_model.dart`:
   * Update `SelectRouteDto` to match backend `select-route.dto.ts` (`source`, `recommendedSequence: List<String>`, `totalDistanceMeters: double`, `estimatedDurationSeconds: int`, optional `idempotencyKey`).
   * Update `RecommendRouteResponse` to parse `polylineGeojson` coordinates (`[lng, lat]` -> `LatLng(lat, lng)`), `recommendedStopIds`, and `recommendedStopNames`.
@@ -237,13 +237,13 @@ Expected: FAIL with missing getters `recommendedStopIds`, `recommendedStopNames`
 - In `lib/features/driver/views/driver_tracking_view.dart`:
   * Fetch `getCurrentDeliveryRoute(activeDelivery.id)` asynchronously when delivery is active and render road-following `PolylineLayer` points (falling back gracefully to stop coordinates if route version 0).
 
-- [ ] **Step 4: Run tests & analyzer to verify green**
+- [x] **Step 4: Run tests & analyzer to verify green**
 Run: `flutter test test/real_route_optimization_test.dart test/route_geometry_test.dart test/route_optimizer_sheet_test.dart`
 Expected: PASS.
 Run: `flutter analyze`
 Expected: "No issues found!".
 
-- [ ] **Step 5: Android Emulator Verification & Commit**
+- [x] **Step 5: Android Emulator Verification & Commit**
 Verify on `emulator-5554`: Open Driver tracking map and Owner route optimizer, confirm road-following polyline renders from OSRM.
 ```bash
 git add lib/data/models/route_geometry_model.dart lib/features/owner/widgets/route_optimizer_sheet.dart lib/features/owner/views/owner_delivery_detail_view.dart lib/features/owner/views/owner_fleet_view.dart lib/features/driver/views/driver_tracking_view.dart test/real_route_optimization_test.dart
@@ -304,7 +304,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/conversation_inbox_test.dart`
 Expected: FAIL with "conversation_inbox_view.dart not found".
 
@@ -325,7 +325,7 @@ Expected: PASS.
 Run: `flutter analyze`
 Expected: "No issues found!".
 
-- [ ] **Step 5: Android Emulator Verification & Commit**
+- [x] **Step 5: Android Emulator Verification & Commit**
 Verify on `emulator-5554`: Driver opens Chat Inbox from home AppBar; Owner initiates chat from delivery detail and lands on canonical conversation.
 ```bash
 git add lib/features/chat/conversation_inbox_view.dart lib/features/driver/driver_shell.dart lib/features/driver/views/driver_home_view.dart lib/features/owner/owner_shell.dart lib/features/owner/views/owner_delivery_detail_view.dart test/conversation_inbox_test.dart
@@ -372,7 +372,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/real_chat_messaging_test.dart`
 Expected: FAIL with undefined getters `getMyDevices`, `chatMessageAckStream`, and `sendChatMessageWs`.
 
@@ -387,13 +387,13 @@ Expected: FAIL with undefined getters `getMyDevices`, `chatMessageAckStream`, an
   * Deduplicate incoming `chat.message.relayed` messages against optimistic local messages using `id`/`idempotencyKey`, and update `isDelivered` when `chat.message.ack` arrives.
   * Display inline error state if `sendChatMessage` fails rather than silently ignoring exceptions.
 
-- [ ] **Step 4: Run tests & analyzer to verify green**
+- [x] **Step 4: Run tests & analyzer to verify green**
 Run: `flutter test test/real_chat_messaging_test.dart test/chat_conversation_view_test.dart test/e2ee_chat_model_test.dart`
 Expected: PASS.
 Run: `flutter analyze`
 Expected: "No issues found!".
 
-- [ ] **Step 5: Android Emulator Verification & Commit**
+- [x] **Step 5: Android Emulator Verification & Commit**
 Verify on `emulator-5554`: Owner sends message to Driver, verify `POST /v1/conversations/:id/messages` returns `201 Created` and ciphertext is persisted in DB and decrypted on Driver screen.
 ```bash
 git add lib/data/repositories/armada_api_service.dart lib/core/services/socket_realtime_service.dart lib/features/chat/chat_conversation_view.dart test/real_chat_messaging_test.dart
@@ -441,7 +441,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/webrtc_service_test.dart`
 Expected: FAIL with "webrtc_service.dart not found".
 
@@ -530,7 +530,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `flutter test test/real_webrtc_call_test.dart`
 Expected: FAIL with missing `callInviteStream`, `buildSignalingOfferPayload`, and `call_session_screen.dart`.
 
@@ -549,7 +549,7 @@ Expected: FAIL with missing `callInviteStream`, `buildSignalingOfferPayload`, an
 - In `lib/features/owner/views/owner_delivery_detail_view.dart`:
   * Wire "PTT Voice" and add "Video Call" button to call `initiateVoiceSession` / `initiateVideoSession`, join `session:<id>`, and push `CallSessionScreen`.
 
-- [ ] **Step 4: Run tests & analyzer to verify green**
+- [x] **Step 4: Run tests & analyzer to verify green**
 Run: `flutter test test/real_webrtc_call_test.dart test/webrtc_signaling_test.dart test/ptt_walkie_talkie_widget_test.dart`
 Expected: PASS.
 Run: `flutter analyze`
