@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/config/theme.dart';
 import '../../data/models/chat_model.dart';
 import '../../data/repositories/armada_api_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/storage/secure_storage_service.dart';
 import 'chat_conversation_view.dart';
@@ -168,7 +169,13 @@ class _ConversationInboxViewState extends State<ConversationInboxView> {
                       itemCount: _conversations.length,
                       itemBuilder: (context, idx) {
                         final conv = _conversations[idx];
-                        final name = conv.driverName ?? 'Driver Armada';
+                        String name = conv.driverName ?? 'Driver Armada';
+                        try {
+                          final user = context.read<AuthProvider>().user;
+                          if (user?.role.toUpperCase() == 'DRIVER') {
+                            name = conv.ownerName ?? 'Owner Dispatcher';
+                          }
+                        } catch (_) {}
                         final plate = conv.plateNumber;
                         final lastMsg = conv.lastMessagePreview ?? 'Ketuk untuk membuka chat';
 

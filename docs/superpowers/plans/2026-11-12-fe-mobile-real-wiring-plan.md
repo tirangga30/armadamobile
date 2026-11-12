@@ -350,7 +350,7 @@ git commit -m "feat(chat): implement ConversationInboxView and canonical convers
   - `void SocketRealtimeService.sendChatMessageWs({required String conversationId, required SendMessageDto dto})`
   - Real `ChatConversationView` send/receive loop with `recipientDeviceId` UUID resolution and message deduplication by `id`.
 
-- [ ] **Step 1: Write failing test in `test/real_chat_messaging_test.dart`**
+- [x] **Step 1: Write failing test in `test/real_chat_messaging_test.dart`**
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:armada_mobile/data/repositories/armada_api_service.dart';
@@ -376,7 +376,7 @@ void main() {
 Run: `flutter test test/real_chat_messaging_test.dart`
 Expected: FAIL with undefined getters `getMyDevices`, `chatMessageAckStream`, and `sendChatMessageWs`.
 
-- [ ] **Step 3: Implement device lookup, WS chat emitters, and live deduplication**
+- [x] **Step 3: Implement device lookup, WS chat emitters, and live deduplication**
 - In `lib/data/repositories/armada_api_service.dart`:
   * Add `getMyDevices()`: `GET /v1/devices/my-devices`.
 - In `lib/core/services/socket_realtime_service.dart`:

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/config/theme.dart';
 import '../../core/network/dio_client.dart';
@@ -9,6 +10,7 @@ import '../../core/services/socket_realtime_service.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../../data/models/chat_model.dart';
 import '../../data/repositories/armada_api_service.dart';
+import '../../providers/auth_provider.dart';
 import 'widgets/chat_bubble.dart';
 
 class ChatConversationView extends StatefulWidget {
@@ -32,7 +34,11 @@ class ChatConversationView extends StatefulWidget {
 class _ChatConversationViewState extends State<ChatConversationView> {
   static const String _defaultMasterKey = 'armada_e2ee_shared_master_key_2026!';
 
-  late final ArmadaApiService _apiService;
+  ArmadaApiService? _apiService;
+  SocketRealtimeService? _socketService;
+  String? _currentUserId;
+  bool _initialized = false;
+
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -40,37 +46,83 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   bool _isLoading = true;
   bool _isSending = false;
   StreamSubscription? _chatSub;
+  StreamSubscription? _ackSub;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      if (widget.apiService != null) {
+        _apiService = widget.apiService;
+      } else {
+        try {
+          _apiService = context.read<ArmadaApiService>();
+        } catch (_) {
+          _apiService = ArmadaApiService(
+            client: DioClient(storageService: SecureStorageService()),
+          );
+        }
+      }
+
+      if (widget.socketService != null) {
+        _socketService = widget.socketService;
+      } else {
+        try {
+          _socketService = context.read<SocketRealtimeService>();
+        } catch (_) {}
+      }
+
+      try {
+        _currentUserId = context.read<AuthProvider>().user?.id;
+      } catch (_) {}
+
+      _initRealtime();
+
+      if (widget.initialMessages != null) {
+        _messages = List.from(widget.initialMessages!);
+        _isLoading = false;
+      } else {
+        _loadMessages();
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _apiService = widget.apiService ??
-        ArmadaApiService(
-          client: DioClient(storageService: SecureStorageService()),
-        );
-
-    if (widget.initialMessages != null) {
-      _messages = List.from(widget.initialMessages!);
-      _isLoading = false;
-    } else {
-      _loadMessages();
-    }
-
-    _initRealtime();
+    _apiService = widget.apiService;
+    _socketService = widget.socketService;
   }
 
   void _initRealtime() {
-    if (widget.socketService != null) {
-      widget.socketService!.joinRoom('conversation:${widget.conversation.id}');
-      _chatSub = widget.socketService!.chatMessageStream.listen((msg) {
+    final socket = _socketService ?? widget.socketService;
+    if (socket != null) {
+      socket.joinRoom('conversation:${widget.conversation.id}');
+      _chatSub = socket.chatMessageStream.listen((msg) {
         if (msg.conversationId == widget.conversation.id) {
           _handleIncomingMessage(msg);
+        }
+      });
+      _ackSub = socket.chatMessageAckStream.listen((ack) {
+        final msgId = ack['messageId']?.toString();
+        if (msgId != null && mounted) {
+          setState(() {
+            final idx = _messages.indexWhere((m) => m.id == msgId);
+            if (idx != -1) {
+              _messages[idx] = _messages[idx].copyWith(isDelivered: true);
+            }
+          });
         }
       });
     }
   }
 
   void _handleIncomingMessage(ChatMessageModel msg) {
+    final exists = _messages.any((m) =>
+        m.id == msg.id || (m.ciphertextBlob.isNotEmpty && m.ciphertextBlob == msg.ciphertextBlob));
+    if (exists) return;
+
     String? decrypted = msg.plaintextBody;
     if (decrypted == null && msg.ciphertextBlob.isNotEmpty) {
       final iv = msg.headerJson['iv'] as String? ?? '';
@@ -85,9 +137,11 @@ class _ChatConversationViewState extends State<ChatConversationView> {
       }
     }
 
+    final isSelf = _currentUserId != null && msg.senderUserId == _currentUserId;
     final fullMsg = msg.copyWith(
       plaintextBody: decrypted,
-      isOutgoing: false,
+      isOutgoing: isSelf,
+      isDelivered: true,
     );
 
     if (mounted) {
@@ -101,9 +155,14 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   Future<void> _loadMessages() async {
     setState(() => _isLoading = true);
     try {
-      final raw = await _apiService.getMessages(widget.conversation.id);
-      final decryptedList = raw.map((m) {
-        if (m.plaintextBody != null) return m;
+      final api = _apiService ??
+          widget.apiService ??
+          ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
+      final raw = await api.getMessages(widget.conversation.id);
+      final chronological = raw.reversed.toList();
+      final decryptedList = chronological.map((m) {
+        final isSelf = _currentUserId != null && m.senderUserId == _currentUserId;
+        if (m.plaintextBody != null) return m.copyWith(isOutgoing: isSelf);
         final iv = m.headerJson['iv'] as String? ?? '';
         try {
           final text = E2eeCryptoService.decrypt(
@@ -111,9 +170,9 @@ class _ChatConversationViewState extends State<ChatConversationView> {
             _defaultMasterKey,
             iv,
           );
-          return m.copyWith(plaintextBody: text);
+          return m.copyWith(plaintextBody: text, isOutgoing: isSelf);
         } catch (_) {
-          return m.copyWith(plaintextBody: '[Pesan terenkripsi]');
+          return m.copyWith(plaintextBody: '[Pesan terenkripsi]', isOutgoing: isSelf);
         }
       }).toList();
 
@@ -154,8 +213,18 @@ class _ChatConversationViewState extends State<ChatConversationView> {
       final encrypted = E2eeCryptoService.encrypt(text, _defaultMasterKey);
       final idempotencyKey = const Uuid().v4();
 
+      String recipientDevId = const Uuid().v4();
+      if (widget.conversation.driverId != null && widget.conversation.driverId!.length == 36) {
+        recipientDevId = widget.conversation.driverId!;
+      }
+      final incoming = _messages.where(
+          (m) => !m.isOutgoing && m.senderDeviceId != null && m.senderDeviceId!.length == 36);
+      if (incoming.isNotEmpty) {
+        recipientDevId = incoming.last.senderDeviceId!;
+      }
+
       final dto = SendMessageDto(
-        recipientDeviceId: widget.conversation.driverId ?? 'dev-target-default',
+        recipientDeviceId: recipientDevId,
         ciphertextBlob: encrypted.ciphertextBlob,
         headerJson: encrypted.headerJson,
         idempotencyKey: idempotencyKey,
@@ -164,25 +233,48 @@ class _ChatConversationViewState extends State<ChatConversationView> {
       final localMsg = ChatMessageModel(
         id: idempotencyKey,
         conversationId: widget.conversation.id,
-        senderId: 'self',
+        senderId: _currentUserId ?? 'self',
+        senderUserId: _currentUserId,
         ciphertextBlob: encrypted.ciphertextBlob,
         headerJson: encrypted.headerJson,
         plaintextBody: text,
         isOutgoing: true,
-        isDelivered: true,
+        isDelivered: false,
         sentAt: DateTime.now(),
       );
 
       setState(() {
         _messages.add(localMsg);
-        _isSending = false;
       });
       _scrollToBottom();
 
+      final api = _apiService ??
+          widget.apiService ??
+          ArmadaApiService(client: DioClient(storageService: SecureStorageService()));
       try {
-        await _apiService.sendChatMessage(widget.conversation.id, dto);
+        final saved = await api.sendChatMessage(widget.conversation.id, dto);
+        if (mounted) {
+          setState(() {
+            final idx = _messages.indexWhere((m) => m.id == idempotencyKey);
+            if (idx != -1) {
+              _messages[idx] = _messages[idx].copyWith(
+                id: saved.id,
+                isDelivered: true,
+              );
+            }
+            _isSending = false;
+          });
+        }
       } catch (e) {
-        debugPrint('Send message API notice: $e');
+        if (mounted) {
+          setState(() => _isSending = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal mengirim pesan: $e'),
+              backgroundColor: AppTheme.statusDanger,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -194,8 +286,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   @override
   void dispose() {
     _chatSub?.cancel();
-    if (widget.socketService != null) {
-      widget.socketService!.leaveRoom('conversation:${widget.conversation.id}');
+    _ackSub?.cancel();
+    final socket = _socketService ?? widget.socketService;
+    if (socket != null) {
+      socket.leaveRoom('conversation:${widget.conversation.id}');
     }
     _textController.dispose();
     _scrollController.dispose();
@@ -204,7 +298,14 @@ class _ChatConversationViewState extends State<ChatConversationView> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.conversation.driverName ?? 'Driver Armada';
+    String title = widget.conversation.driverName ?? 'Driver Armada';
+    try {
+      final user = context.read<AuthProvider>().user;
+      if (user?.role.toUpperCase() == 'DRIVER') {
+        title = widget.conversation.ownerName ?? 'Owner Dispatcher';
+      }
+    } catch (_) {}
+
     final subtitle = widget.conversation.plateNumber != null
         ? '${widget.conversation.plateNumber} • Online'
         : 'Terenkripsi E2EE';

@@ -497,6 +497,21 @@ class ArmadaApiService {
   /*                            CONVERSATIONS & CHAT                            */
   /* -------------------------------------------------------------------------- */
 
+  Future<List<Map<String, dynamic>>> getMyDevices() async {
+    try {
+      final res = await _client.get('devices/my-devices');
+      final data = res['data'] ?? res;
+      if (data is List) {
+        return data.whereType<Map<String, dynamic>>().toList();
+      } else if (data is Map && data['devices'] is List) {
+        return (data['devices'] as List).whereType<Map<String, dynamic>>().toList();
+      }
+    } catch (e) {
+      debugPrint('Notice loading user devices: $e');
+    }
+    return [];
+  }
+
   Future<List<ConversationModel>> getConversations() async {
     try {
       final res = await _client.get('conversations');

@@ -40,6 +40,7 @@ class ConversationModel {
   final String? participantBId;
   final String? driverId;
   final String? driverName;
+  final String? ownerName;
   final String? plateNumber;
   final String? lastMessagePreview;
   final DateTime? lastMessageAt;
@@ -53,6 +54,7 @@ class ConversationModel {
     this.participantBId,
     String? driverId,
     this.driverName,
+    this.ownerName,
     this.plateNumber,
     this.lastMessagePreview,
     this.lastMessageAt,
@@ -69,6 +71,8 @@ class ConversationModel {
       driverId: json['driverId']?.toString() ?? json['participantBId']?.toString(),
       driverName: json['driverName']?.toString() ??
           (json['driver'] is Map ? json['driver']['displayName']?.toString() : null),
+      ownerName: json['ownerName']?.toString() ??
+          (json['owner'] is Map ? json['owner']['username']?.toString() : null),
       plateNumber: json['plateNumber']?.toString() ??
           (json['driver'] is Map ? json['driver']['plateNumber']?.toString() : null),
       lastMessagePreview: json['lastMessagePreview']?.toString() ??
@@ -182,13 +186,14 @@ class ChatMessageModel {
       };
 
   ChatMessageModel copyWith({
+    String? id,
     String? plaintextBody,
     bool? isDelivered,
     bool? isRead,
     bool? isOutgoing,
   }) {
     return ChatMessageModel(
-      id: id,
+      id: id ?? this.id,
       conversationId: conversationId,
       senderId: senderId,
       senderUserId: senderUserId,

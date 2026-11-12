@@ -16,6 +16,7 @@ class SocketRealtimeService {
   final _deliveryStatusController = StreamController<RealtimeDeliveryStatusPayload>.broadcast();
   final _emergencyController = StreamController<RealtimeEmergencyPayload>.broadcast();
   final _chatMessageController = StreamController<ChatMessageModel>.broadcast();
+  final _chatMessageAckController = StreamController<Map<String, dynamic>>.broadcast();
   final _webrtcOfferController = StreamController<Map<String, dynamic>>.broadcast();
   final _webrtcAnswerController = StreamController<Map<String, dynamic>>.broadcast();
   final _webrtcIceCandidateController = StreamController<Map<String, dynamic>>.broadcast();
@@ -29,6 +30,7 @@ class SocketRealtimeService {
   Stream<RealtimeDeliveryStatusPayload> get deliveryStatusStream => _deliveryStatusController.stream;
   Stream<RealtimeEmergencyPayload> get emergencyStream => _emergencyController.stream;
   Stream<ChatMessageModel> get chatMessageStream => _chatMessageController.stream;
+  Stream<Map<String, dynamic>> get chatMessageAckStream => _chatMessageAckController.stream;
   Stream<Map<String, dynamic>> get webrtcOfferStream => _webrtcOfferController.stream;
   Stream<Map<String, dynamic>> get webrtcAnswerStream => _webrtcAnswerController.stream;
   Stream<Map<String, dynamic>> get webrtcIceCandidateStream => _webrtcIceCandidateController.stream;
@@ -135,6 +137,18 @@ class SocketRealtimeService {
       }
     });
 
+    // Event 4b: Chat message ACK
+    _socket!.on('chat.message.ack', (data) {
+      try {
+        if (data is Map<String, dynamic>) {
+          final payloadData = data['payload'] is Map<String, dynamic> ? data['payload'] : data;
+          _chatMessageAckController.add(payloadData as Map<String, dynamic>);
+        }
+      } catch (e) {
+        debugPrint('Error parsing chat.message.ack: $e');
+      }
+    });
+
     // Event 5: WebRTC Offer
     _socket!.on('webrtc.signal.offer', (data) {
       try {
@@ -222,6 +236,27 @@ class SocketRealtimeService {
     _socket?.emit('webrtc.call.hangup', {'sessionId': sessionId});
   }
 
+  /* -------------------------------------------------------------------------- */
+  /*                             CHAT MESSAGING                                 */
+  /* -------------------------------------------------------------------------- */
+
+  void sendChatMessageWs({
+    required String conversationId,
+    required SendMessageDto dto,
+  }) {
+    final payload = <String, dynamic>{
+      'conversationId': conversationId,
+      'recipientDeviceId': dto.recipientDeviceId,
+      'protocolVersion': dto.protocolVersion,
+      'ciphertextBlob': dto.ciphertextBlob,
+      'headerJson': dto.headerJson,
+    };
+    if (dto.idempotencyKey != null) {
+      payload['idempotencyKey'] = dto.idempotencyKey;
+    }
+    _socket?.emit('chat.message.send', payload);
+  }
+
   void disconnect() {
     _socket?.disconnect();
     _socket?.dispose();
@@ -235,6 +270,7 @@ class SocketRealtimeService {
     _deliveryStatusController.close();
     _emergencyController.close();
     _chatMessageController.close();
+    _chatMessageAckController.close();
     _webrtcOfferController.close();
     _webrtcAnswerController.close();
     _webrtcIceCandidateController.close();
