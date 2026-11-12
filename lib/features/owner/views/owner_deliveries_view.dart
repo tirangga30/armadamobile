@@ -85,14 +85,26 @@ class _OwnerDeliveriesViewState extends State<OwnerDeliveriesView> {
             backgroundColor: Colors.transparent,
             builder: (_) => CreateDeliveryModalSheet(
               onSubmit: (CreateDeliveryDto dto) async {
-                await fleet.fetchAllData();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Surat Jalan ${dto.deliveryCode} berhasil dibuat!'),
-                      backgroundColor: AppTheme.statusSuccess,
-                    ),
-                  );
+                try {
+                  final created = await fleet.createDelivery(dto);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Surat Jalan ${created.orderNumber} berhasil diterbitkan!'),
+                        backgroundColor: AppTheme.statusSuccess,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal menerbitkan Surat Jalan: $e'),
+                        backgroundColor: AppTheme.statusDanger,
+                      ),
+                    );
+                  }
+                  rethrow;
                 }
               },
             ),

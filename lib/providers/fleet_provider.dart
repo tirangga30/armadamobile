@@ -4,6 +4,7 @@ import '../../core/services/socket_realtime_service.dart';
 import '../../data/models/fleet_driver_model.dart';
 import '../../data/models/emergency_model.dart';
 import '../../data/models/delivery_model.dart';
+import '../../data/models/create_delivery_dto.dart';
 import '../../data/repositories/armada_api_service.dart';
 
 class FleetProvider extends ChangeNotifier {
@@ -92,6 +93,8 @@ class FleetProvider extends ChangeNotifier {
     super.dispose();
   }
 
+  final List<DeliveryModel> _userCreatedDeliveries = [];
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -131,9 +134,78 @@ class FleetProvider extends ChangeNotifier {
 
       _drivers = results[0] as List<FleetDriver>;
       _emergencies = results[1] as List<EmergencyModel>;
-      _deliveries = results[2] as List<DeliveryModel>;
+      final fetchedDeliveries = results[2] as List<DeliveryModel>;
+
+      // Review Focus #5: Merge & preserve user-created deliveries across refreshes
+      final fetchedIds = fetchedDeliveries.map((d) => d.id).toSet();
+      final preserved = _userCreatedDeliveries.where((d) => !fetchedIds.contains(d.id)).toList();
+      _deliveries = [...preserved, ...fetchedDeliveries];
     } catch (e) {
       _errorMessage = 'Gagal memperbarui data armada: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Create and persist a new delivery order to the backend
+  Future<DeliveryModel> createDelivery(CreateDeliveryDto dto) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final created = await _apiService.createDelivery(dto);
+      _userCreatedDeliveries.insert(0, created);
+      _deliveries.insert(0, created);
+      return created;
+    } catch (e) {
+      _errorMessage = 'Gagal menerbitkan DO: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Assign an available driver and vehicle to a delivery
+  Future<void> assignDelivery(
+    String deliveryId,
+    AssignDeliveryDto dto, {
+    String? driverName,
+    String? plateNumber,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _apiService.assignDelivery(deliveryId, dto);
+
+      // Update in main deliveries list
+      final idx = _deliveries.indexWhere((d) => d.id == deliveryId);
+      if (idx != -1) {
+        _deliveries[idx] = _deliveries[idx].copyWith(
+          status: 'ASSIGNED',
+          driverId: dto.driverId,
+          assignedDriver: driverName ?? _deliveries[idx].assignedDriver,
+          plateNumber: plateNumber ?? _deliveries[idx].plateNumber,
+        );
+      }
+
+      // Update in user-created cache if present
+      final userIdx = _userCreatedDeliveries.indexWhere((d) => d.id == deliveryId);
+      if (userIdx != -1) {
+        _userCreatedDeliveries[userIdx] = _userCreatedDeliveries[userIdx].copyWith(
+          status: 'ASSIGNED',
+          driverId: dto.driverId,
+          assignedDriver: driverName ?? _userCreatedDeliveries[userIdx].assignedDriver,
+          plateNumber: plateNumber ?? _userCreatedDeliveries[userIdx].plateNumber,
+        );
+      }
+    } catch (e) {
+      _errorMessage = 'Gagal menugaskan armada: $e';
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -50,19 +50,40 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
             (d) => d.id == dto.driverId,
             orElse: () => fleet.drivers.first,
           );
-          setState(() {
-            _currentDelivery = _currentDelivery.copyWith(
-              status: 'ASSIGNED',
-              assignedDriver: assignedDriver.driverName,
+          try {
+            await fleet.assignDelivery(
+              _currentDelivery.id,
+              dto,
+              driverName: assignedDriver.driverName,
               plateNumber: assignedDriver.plateNumber ?? 'B 1234 SXZ',
             );
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Armada berhasil ditugaskan!'),
-              backgroundColor: AppTheme.statusSuccess,
-            ),
-          );
+            setState(() {
+              _currentDelivery = _currentDelivery.copyWith(
+                status: 'ASSIGNED',
+                driverId: assignedDriver.id,
+                assignedDriver: assignedDriver.driverName,
+                plateNumber: assignedDriver.plateNumber ?? 'B 1234 SXZ',
+              );
+            });
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Armada berhasil ditugaskan!'),
+                  backgroundColor: AppTheme.statusSuccess,
+                ),
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Gagal menugaskan armada: $e'),
+                  backgroundColor: AppTheme.statusDanger,
+                ),
+              );
+            }
+            rethrow;
+          }
         },
       ),
     );

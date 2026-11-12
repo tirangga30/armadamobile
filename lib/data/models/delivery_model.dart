@@ -48,7 +48,7 @@ class DeliveryModel {
 
     return DeliveryModel(
       id: json['id']?.toString() ?? '',
-      orderNumber: json['orderNumber']?.toString() ?? json['id']?.toString() ?? '',
+      orderNumber: json['orderNumber']?.toString() ?? json['deliveryCode']?.toString() ?? json['id']?.toString() ?? '',
       clientName: json['clientName']?.toString() ?? 'Klien Distribusi',
       origin: json['origin']?.toString() ?? 'Gudang Pusat',
       destination: json['destination']?.toString() ?? 'Tujuan Pengiriman',
