@@ -67,7 +67,9 @@ class _AssignDriverModalSheetState extends State<AssignDriverModalSheet> {
     try {
       final dto = AssignDeliveryDto(
         driverId: driver.id,
-        vehicleId: driver.activeVehicleId ?? 'veh-default-${driver.id}',
+        vehicleId: (driver.activeVehicleId != null && driver.activeVehicleId!.length == 36)
+            ? driver.activeVehicleId!
+            : '9268f594-8393-4d0c-be3c-d456c1625200',
         notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
       );
 
