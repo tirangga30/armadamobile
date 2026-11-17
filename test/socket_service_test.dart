@@ -11,5 +11,6 @@ void main() {
     expect(service.locationStream, isNotNull);
     expect(service.deliveryStatusStream, isNotNull);
     expect(service.emergencyStream, isNotNull);
+    expect(service.roomErrorStream, isNotNull);
   });
 }
