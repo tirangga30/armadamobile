@@ -15,6 +15,8 @@ class WebRtcService {
   final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   bool _renderersInitialized = false;
+  bool _isDisposing = false;
+  bool _isDisposed = false;
 
   /// ICE candidates that arrived before the remote description was applied.
   /// Candidates are trickled by the peer as soon as it gathers them, which is
@@ -31,6 +33,8 @@ class WebRtcService {
 
   RTCVideoRenderer get localRenderer => _localRenderer;
   RTCVideoRenderer get remoteRenderer => _remoteRenderer;
+  bool get renderersInitialized => _renderersInitialized;
+  bool get isDisposed => _isDisposed;
   RTCPeerConnection? get peerConnection => _peerConnection;
   MediaStream? get localStream => _localStream;
   MediaStream? get remoteStream => _remoteStream;
@@ -110,7 +114,9 @@ class WebRtcService {
     _peerConnection!.onTrack = (RTCTrackEvent event) {
       if (event.streams.isNotEmpty) {
         _remoteStream = event.streams[0];
-        _remoteRenderer.srcObject = _remoteStream;
+        if (isVideo || event.track.kind == 'video') {
+          _remoteRenderer.srcObject = _remoteStream;
+        }
         onAddRemoteStream?.call(_remoteStream!);
       }
     };
@@ -242,7 +248,7 @@ class WebRtcService {
 
   /// Add received ICE candidate to peer connection
   Future<void> addIceCandidate(Map<String, dynamic> candidateMap) async {
-    if (_peerConnection == null) return;
+    if (_peerConnection == null || _isDisposed || _isDisposing) return;
 
     final candidate = RTCIceCandidate(
       candidateMap['candidate']?.toString() ?? '',
@@ -268,10 +274,11 @@ class WebRtcService {
   }
 
   Future<void> _flushPendingRemoteCandidates() async {
-    if (_pendingRemoteCandidates.isEmpty) return;
+    if (_pendingRemoteCandidates.isEmpty || _isDisposed || _isDisposing) return;
     final queued = List<RTCIceCandidate>.from(_pendingRemoteCandidates);
     _pendingRemoteCandidates.clear();
     for (final candidate in queued) {
+      if (_isDisposed || _isDisposing) break;
       try {
         await _peerConnection?.addCandidate(candidate);
       } catch (e) {
@@ -280,42 +287,86 @@ class WebRtcService {
     }
   }
 
-  /// Clean up media tracks, renderers, and peer connection
+  /// Clean up media tracks, renderers, and peer connection in safe native order
   Future<void> dispose() async {
+    if (_isDisposed || _isDisposing) return;
+    _isDisposing = true;
+
     try {
+      // 1. Detach external event callbacks to prevent firing during teardown
+      onIceCandidate = null;
+      onAddRemoteStream = null;
+      onConnectionState = null;
+
+      // 2. Detach callbacks and close/dispose PeerConnection FIRST.
+      // On Android native WebRTC, closing peer connection first detaches all
+      // native audio/video sinks. Disposing renderers before peer connection
+      // causes SIGSEGV when incoming frames attempt to hit destroyed texture sinks.
+      if (_peerConnection != null) {
+        _peerConnection!.onIceCandidate = null;
+        _peerConnection!.onTrack = null;
+        _peerConnection!.onConnectionState = null;
+        _peerConnection!.onIceGatheringState = null;
+        try {
+          await _peerConnection!.close();
+          await _peerConnection!.dispose();
+        } catch (e) {
+          debugPrint('Error closing peer connection: $e');
+        }
+        _peerConnection = null;
+      }
+
+      // 3. Stop tracks and dispose media streams
       if (_localStream != null) {
         for (var track in _localStream!.getTracks()) {
-          track.stop();
+          try {
+            track.stop();
+          } catch (_) {}
         }
-        await _localStream!.dispose();
+        try {
+          await _localStream!.dispose();
+        } catch (_) {}
         _localStream = null;
       }
 
       if (_remoteStream != null) {
-        await _remoteStream!.dispose();
+        for (var track in _remoteStream!.getTracks()) {
+          try {
+            track.stop();
+          } catch (_) {}
+        }
+        try {
+          await _remoteStream!.dispose();
+        } catch (_) {}
         _remoteStream = null;
       }
 
+      // 4. Detach srcObject and dispose renderers LAST
       if (_renderersInitialized) {
-        _localRenderer.srcObject = null;
-        _remoteRenderer.srcObject = null;
-        await _localRenderer.dispose();
-        await _remoteRenderer.dispose();
+        try {
+          _localRenderer.srcObject = null;
+          _remoteRenderer.srcObject = null;
+          await _localRenderer.dispose();
+          await _remoteRenderer.dispose();
+        } catch (e) {
+          debugPrint('Error disposing renderers: $e');
+        }
         _renderersInitialized = false;
       }
 
-      if (_peerConnection != null) {
-        await _peerConnection!.close();
-        await _peerConnection!.dispose();
-        _peerConnection = null;
-      }
-
+      // 5. Clear pending state and uncompleted completers
       _pendingRemoteCandidates.clear();
       _remoteDescriptionSet = false;
       _gatheringState = null;
+      if (_gatheringCompleter != null && !_gatheringCompleter!.isCompleted) {
+        _gatheringCompleter!.complete();
+      }
       _gatheringCompleter = null;
     } catch (e) {
       debugPrint('Error during WebRtcService dispose: $e');
+    } finally {
+      _isDisposed = true;
+      _isDisposing = false;
     }
   }
 }

@@ -39,4 +39,31 @@ void main() {
     expect(find.text('Terima'), findsOneWidget);
     expect(find.text('Tolak'), findsOneWidget);
   });
+
+  testWidgets('PttWalkieTalkieButton triggers onPressStart on pointer down and onPressEnd on pointer up', (tester) async {
+    bool started = false;
+    bool ended = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PttWalkieTalkieButton(
+            onPressStart: () => started = true,
+            onPressEnd: () => ended = true,
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await tester.startGesture(tester.getCenter(find.byIcon(Icons.mic_rounded)));
+    await tester.pump();
+    expect(started, isTrue);
+    expect(ended, isFalse);
+    expect(find.text('SEDANG MENGIRIM SUARA...'), findsOneWidget);
+
+    await gesture.up();
+    await tester.pump();
+    expect(ended, isTrue);
+    expect(find.text('TEKAN UNTUK BICARA'), findsOneWidget);
+  });
 }

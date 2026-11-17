@@ -30,6 +30,7 @@ class OwnerDeliveryDetailView extends StatefulWidget {
 
 class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
   late DeliveryModel _currentDelivery;
+  bool _isInitiatingCall = false;
 
   @override
   void initState() {
@@ -98,8 +99,12 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
     DeliveryModel item,
     String callType,
   ) async {
+    if (_isInitiatingCall) return;
+    _isInitiatingCall = true;
+
     final driverId = item.driverId;
     if (driverId == null || driverId.isEmpty) {
+      _isInitiatingCall = false;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ID driver tidak ditemukan pada order ini.')),
       );
@@ -144,6 +149,10 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
             backgroundColor: AppTheme.statusDanger,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        _isInitiatingCall = false;
       }
     }
   }

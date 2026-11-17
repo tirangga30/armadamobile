@@ -42,6 +42,8 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
   String? _currentUserId;
 
   bool _initialized = false;
+  bool _renderersReady = false;
+  bool _isConnected = false;
   bool _isTransmitting = false;
   bool _isEnding = false;
   bool _hasRemoteVideo = false;
@@ -49,7 +51,10 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
   bool _answerReceived = false;
   int _offerRetries = 0;
   Timer? _offerRetryTimer;
+  Timer? _declinedTimer;
   String? _lastOfferSdp;
+  String? _lastRemoteOfferSdp;
+  String? _lastAnswerSdp;
   final Completer<void> _mediaReady = Completer<void>();
   String _statusText = 'Menghubungkan...';
 
@@ -136,6 +141,12 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
         turnCredentials: widget.session.turnCredentials,
       );
 
+      if (mounted) {
+        setState(() {
+          _renderersReady = true;
+        });
+      }
+
       // Default PTT mic muted until user holds talk button
       if (!isVideo) {
         _webRtcService.setMicrophoneEnabled(false);
@@ -165,7 +176,9 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
       _webRtcService.onConnectionState = (RTCPeerConnectionState state) {
         if (!mounted) return;
         if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+          _isConnected = true;
           _offerRetryTimer?.cancel();
+          _offerRetryTimer = null;
           setState(() => _statusText = 'Terhubung');
         } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
           setState(() => _statusText = 'Koneksi WebRTC gagal');
@@ -200,8 +213,9 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
       } else if (status == 'DECLINED') {
         if (mounted) {
           setState(() => _statusText = 'Panggilan ditolak');
-          Future.delayed(const Duration(milliseconds: 900), () {
-            if (mounted) Navigator.of(context).pop();
+          _declinedTimer?.cancel();
+          _declinedTimer = Timer(const Duration(milliseconds: 900), () {
+            if (mounted && !_isEnding) _cleanupAndPop();
           });
         }
       }
@@ -215,13 +229,22 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
       final sdp = data['sdp']?.toString();
       if (sdp == null || sdp.isEmpty) return;
 
+      // If already answered this exact offer or already connected, just retransmit
+      // cached answer; do not renegotiate active peer connection!
+      if (_lastAnswerSdp != null && (_lastRemoteOfferSdp == sdp || _isConnected)) {
+        _socketService?.sendWebrtcAnswer(widget.session.sessionId, _lastAnswerSdp!);
+        return;
+      }
+
       if (mounted) setState(() => _statusText = 'Menyambungkan WebRTC...');
       await _mediaReady.future.timeout(const Duration(seconds: 20), onTimeout: () {});
-      if (_isEnding) return;
+      if (_isEnding || !mounted) return;
 
       try {
+        _lastRemoteOfferSdp = sdp;
         final answerSdp = await _webRtcService.createAnswer(sdp, waitForCandidates: true);
-        if (answerSdp.isEmpty) return;
+        if (answerSdp.isEmpty || _isEnding) return;
+        _lastAnswerSdp = answerSdp;
         _socketService?.sendWebrtcAnswer(widget.session.sessionId, answerSdp);
         if (mounted) setState(() => _statusText = 'Menyambungkan WebRTC...');
       } catch (e) {
@@ -233,12 +256,14 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
       if (data['sessionId'] != widget.session.sessionId) return;
       if (_currentUserId != null && data['_actorUserId'] == _currentUserId) return;
       if (!widget.isCaller) return;
+      if (_answerReceived) return; // Prevent duplicate setRemoteAnswer on already stable connection
 
       final sdp = data['sdp']?.toString();
       if (sdp == null || sdp.isEmpty) return;
 
       _answerReceived = true;
       _offerRetryTimer?.cancel();
+      _offerRetryTimer = null;
       try {
         await _webRtcService.setRemoteAnswer(sdp);
       } catch (e) {
@@ -309,23 +334,46 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
   }
 
   Future<void> _cleanupAndPop() async {
+    if (_isEnding) return;
     _isEnding = true;
+
+    _offerRetryTimer?.cancel();
+    _offerRetryTimer = null;
+    _declinedTimer?.cancel();
+    _declinedTimer = null;
+
     _socketService?.leaveRoom('session:${widget.session.sessionId}');
-    await _webRtcService.dispose();
+
+    // 1. Immediately disable video rendering so RTCVideoView stops painting textures
     if (mounted) {
+      setState(() {
+        _renderersReady = false;
+        _hasRemoteVideo = false;
+      });
+      // 2. Pop the route first so views are cleanly removed
       Navigator.of(context).pop();
+    }
+
+    // 3. Dispose the WebRTC service after views are popped
+    if (!widget.skipMediaInitForTest) {
+      await _webRtcService.dispose();
     }
   }
 
   @override
   void dispose() {
+    _isEnding = true;
     _offerRetryTimer?.cancel();
+    _offerRetryTimer = null;
+    _declinedTimer?.cancel();
+    _declinedTimer = null;
     _respondSub?.cancel();
     _offerSub?.cancel();
     _answerSub?.cancel();
     _iceSub?.cancel();
     _endedSub?.cancel();
-    if (!_isEnding && !widget.skipMediaInitForTest) {
+    _socketService?.leaveRoom('session:${widget.session.sessionId}');
+    if (!widget.skipMediaInitForTest) {
       _webRtcService.dispose();
     }
     super.dispose();
@@ -336,216 +384,234 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
     final isVideo = widget.session.type == 'VIDEO';
     final peerName = widget.session.driverName ?? 'Rekan Armada';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            if (isVideo && !widget.skipMediaInitForTest)
-              Positioned.fill(
-                child: _hasRemoteVideo
-                    ? RTCVideoView(
-                        _webRtcService.remoteRenderer,
-                        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const CircularProgressIndicator(color: Colors.white),
-                            const SizedBox(height: 16),
-                            Text(
-                              _statusText,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white70,
-                                fontSize: 14,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _hangup();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              if (isVideo && !widget.skipMediaInitForTest)
+                Positioned.fill(
+                  child: (_hasRemoteVideo && _renderersReady && _webRtcService.renderersInitialized)
+                      ? RTCVideoView(
+                          _webRtcService.remoteRenderer,
+                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const CircularProgressIndicator(color: Colors.white),
+                              const SizedBox(height: 16),
+                              Text(
+                                _statusText,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-              ),
-
-            if (isVideo && !widget.skipMediaInitForTest)
-              Positioned(
-                top: 84,
-                right: 20,
-                width: 110,
-                height: 155,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white30),
-                      color: Colors.black,
-                    ),
-                    child: RTCVideoView(
-                      _webRtcService.localRenderer,
-                      mirror: true,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    ),
-                  ),
-                ),
-              ),
-
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isVideo ? Icons.videocam_rounded : Icons.settings_voice_rounded,
-                              color: AppTheme.statusSuccess,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              isVideo ? 'Video Call' : 'PTT Walkie-Talkie',
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        _statusText,
-                        style: GoogleFonts.plusJakartaSans(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                if (!isVideo) ...[
-                  const Spacer(),
-                  Container(
-                    width: 110,
-                    height: 110,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.2),
-                      border: Border.all(
-                        color: _isTransmitting ? AppTheme.statusDanger : AppTheme.primaryBlue,
-                        width: 2.5,
-                      ),
-                    ),
-                    child: const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 48),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    peerName,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _statusText,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: const Color(0xFF94A3B8),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        PttWalkieTalkieButton(
-                          isTransmitting: _isTransmitting,
-                          onPressStart: () {
-                            setState(() => _isTransmitting = true);
-                            if (!widget.skipMediaInitForTest) {
-                              _webRtcService.setMicrophoneEnabled(true);
-                            }
-                          },
-                          onPressEnd: () {
-                            setState(() => _isTransmitting = false);
-                            if (!widget.skipMediaInitForTest) {
-                              _webRtcService.setMicrophoneEnabled(false);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _hangup,
-                            icon: const Icon(Icons.call_end_rounded),
-                            label: const Text('Akhiri Sesi PTT'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.statusDanger,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
+                            ],
                           ),
                         ),
-                      ],
+                ),
+
+              if (isVideo && !widget.skipMediaInitForTest)
+                Positioned(
+                  top: 84,
+                  right: 20,
+                  width: 110,
+                  height: 155,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white30),
+                        color: Colors.black,
+                      ),
+                      child: (_renderersReady && _webRtcService.renderersInitialized)
+                          ? RTCVideoView(
+                              _webRtcService.localRenderer,
+                              mirror: true,
+                              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                            )
+                          : const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white54,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
                     ),
                   ),
-                ] else ...[
-                  const Spacer(),
+                ),
+
+              Column(
+                children: [
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        FloatingActionButton(
-                          heroTag: 'btn_mic_video',
-                          backgroundColor: Colors.white24,
-                          onPressed: () {
-                            setState(() => _isTransmitting = !_isTransmitting);
-                            if (!widget.skipMediaInitForTest) {
-                              _webRtcService.setMicrophoneEnabled(!_isTransmitting);
-                            }
-                          },
-                          child: Icon(
-                            _isTransmitting ? Icons.mic_off_rounded : Icons.mic_rounded,
-                            color: Colors.white,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isVideo ? Icons.videocam_rounded : Icons.settings_voice_rounded,
+                                color: AppTheme.statusSuccess,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isVideo ? 'Video Call' : 'PTT Walkie-Talkie',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 24),
-                        FloatingActionButton.large(
-                          heroTag: 'btn_hangup_video',
-                          backgroundColor: AppTheme.statusDanger,
-                          onPressed: _hangup,
-                          child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 32),
+                        const Spacer(),
+                        Text(
+                          _statusText,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
                   ),
+
+                  if (!isVideo) ...[
+                    const Spacer(),
+                    Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                        border: Border.all(
+                          color: _isTransmitting ? AppTheme.statusDanger : AppTheme.primaryBlue,
+                          width: 2.5,
+                        ),
+                      ),
+                      child: const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 48),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      peerName,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _statusText,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF94A3B8),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          PttWalkieTalkieButton(
+                            isTransmitting: _isTransmitting,
+                            onPressStart: () {
+                              setState(() => _isTransmitting = true);
+                              if (!widget.skipMediaInitForTest) {
+                                _webRtcService.setMicrophoneEnabled(true);
+                              }
+                            },
+                            onPressEnd: () {
+                              setState(() => _isTransmitting = false);
+                              if (!widget.skipMediaInitForTest) {
+                                _webRtcService.setMicrophoneEnabled(false);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _hangup,
+                              icon: const Icon(Icons.call_end_rounded),
+                              label: const Text('Akhiri Sesi PTT'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.statusDanger,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    const Spacer(),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 36),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FloatingActionButton(
+                            heroTag: 'btn_mic_video',
+                            backgroundColor: Colors.white24,
+                            onPressed: () {
+                              setState(() => _isTransmitting = !_isTransmitting);
+                              if (!widget.skipMediaInitForTest) {
+                                _webRtcService.setMicrophoneEnabled(!_isTransmitting);
+                              }
+                            },
+                            child: Icon(
+                              _isTransmitting ? Icons.mic_off_rounded : Icons.mic_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          FloatingActionButton.large(
+                            heroTag: 'btn_hangup_video',
+                            backgroundColor: AppTheme.statusDanger,
+                            onPressed: _hangup,
+                            child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 32),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

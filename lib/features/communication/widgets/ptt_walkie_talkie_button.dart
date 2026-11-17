@@ -39,12 +39,15 @@ class _PttWalkieTalkieButtonState extends State<PttWalkieTalkieButton>
 
   @override
   void dispose() {
+    if (_isPressed) {
+      widget.onPressEnd();
+    }
     _pulseController.dispose();
     super.dispose();
   }
 
   void _handlePressDown() {
-    if (_isPressed) return;
+    if (!mounted || _isPressed) return;
     setState(() => _isPressed = true);
     HapticFeedback.heavyImpact();
     _pulseController.repeat(reverse: true);
@@ -52,7 +55,7 @@ class _PttWalkieTalkieButtonState extends State<PttWalkieTalkieButton>
   }
 
   void _handlePressUp() {
-    if (!_isPressed) return;
+    if (!mounted || !_isPressed) return;
     setState(() => _isPressed = false);
     HapticFeedback.lightImpact();
     _pulseController.stop();
@@ -68,12 +71,11 @@ class _PttWalkieTalkieButtonState extends State<PttWalkieTalkieButton>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
-          onTapDown: (_) => _handlePressDown(),
-          onTapUp: (_) => _handlePressUp(),
-          onTapCancel: () => _handlePressUp(),
-          onLongPressStart: (_) => _handlePressDown(),
-          onLongPressEnd: (_) => _handlePressUp(),
+        Listener(
+          onPointerDown: (_) => _handlePressDown(),
+          onPointerUp: (_) => _handlePressUp(),
+          onPointerCancel: (_) => _handlePressUp(),
+          behavior: HitTestBehavior.opaque,
           child: AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (context, child) {

@@ -32,4 +32,17 @@ void main() {
       'stun:stun.l.google.com:19302',
     );
   });
+
+  test('WebRtcService dispose is idempotent and safe against double-dispose', () async {
+    final service = WebRtcService();
+    expect(service.renderersInitialized, isFalse);
+    expect(service.isDisposed, isFalse);
+
+    await service.dispose();
+    expect(service.isDisposed, isTrue);
+
+    // Second dispose should be a safe no-op without throwing
+    await service.dispose();
+    expect(service.isDisposed, isTrue);
+  });
 }

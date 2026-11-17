@@ -31,6 +31,7 @@ class _DriverShellState extends State<DriverShell> {
   StreamSubscription? _emergencySub;
   StreamSubscription? _callInviteSub;
   bool _showingCallDialog = false;
+  bool _isInCall = false;
 
   final List<Widget> _views = const [
     DriverHomeView(),
@@ -77,9 +78,15 @@ class _DriverShellState extends State<DriverShell> {
     Map<String, dynamic> invite,
     SocketRealtimeService socketService,
   ) {
-    if (!mounted || _showingCallDialog) return;
     final sessionId = invite['sessionId']?.toString() ?? '';
     if (sessionId.isEmpty) return;
+
+    if (!mounted || _showingCallDialog || _isInCall) {
+      if (_isInCall) {
+        socketService.sendCallRespond(sessionId, 'DECLINE');
+      }
+      return;
+    }
 
     final type = invite['type']?.toString() ?? 'VOICE_PTT';
     final driverId = invite['driverId']?.toString() ?? '';
@@ -103,6 +110,7 @@ class _DriverShellState extends State<DriverShell> {
         onAccept: () async {
           Navigator.of(dialogCtx).pop();
           _showingCallDialog = false;
+          _isInCall = true;
 
           ArmadaApiService api;
           try {
@@ -137,7 +145,15 @@ class _DriverShellState extends State<DriverShell> {
                   isCaller: false,
                 ),
               ),
-            );
+            ).then((_) {
+              if (mounted) {
+                setState(() => _isInCall = false);
+              } else {
+                _isInCall = false;
+              }
+            });
+          } else {
+            _isInCall = false;
           }
         },
         onDecline: () async {
@@ -159,7 +175,13 @@ class _DriverShellState extends State<DriverShell> {
           socketService.sendCallRespond(sessionId, 'DECLINE');
         },
       ),
-    ).then((_) => _showingCallDialog = false);
+    ).then((_) {
+      if (mounted) {
+        setState(() => _showingCallDialog = false);
+      } else {
+        _showingCallDialog = false;
+      }
+    });
   }
 
   @override
