@@ -25,6 +25,7 @@ class SocketRealtimeService {
   final _webrtcAnswerController = StreamController<Map<String, dynamic>>.broadcast();
   final _webrtcIceCandidateController = StreamController<Map<String, dynamic>>.broadcast();
   final _webrtcCallEndedController = StreamController<String>.broadcast();
+  final _roomErrorController = StreamController<Map<String, dynamic>>.broadcast();
 
   SocketRealtimeService({required SecureStorageService storageService})
       : _storageService = storageService;
@@ -41,6 +42,7 @@ class SocketRealtimeService {
   Stream<Map<String, dynamic>> get webrtcAnswerStream => _webrtcAnswerController.stream;
   Stream<Map<String, dynamic>> get webrtcIceCandidateStream => _webrtcIceCandidateController.stream;
   Stream<String> get webrtcCallEndedStream => _webrtcCallEndedController.stream;
+  Stream<Map<String, dynamic>> get roomErrorStream => _roomErrorController.stream;
 
   /// Connect to backend Socket.IO Gateway on namespace /v1/realtime
   Future<void> connect({String? customToken}) async {
@@ -260,6 +262,19 @@ class SocketRealtimeService {
       }
     });
 
+    // Room error event
+    _socket!.on('room_error', (data) {
+      try {
+        final payload = data is Map<String, dynamic>
+            ? data
+            : Map<String, dynamic>.from(data as Map);
+        debugPrint('room_error - room: ${payload['room']}, message: ${payload['message']}');
+        _roomErrorController.add(payload);
+      } catch (e) {
+        debugPrint('Error handling room_error: $e');
+      }
+    });
+
     _socket!.connect();
   }
 
@@ -391,5 +406,6 @@ class SocketRealtimeService {
     _webrtcAnswerController.close();
     _webrtcIceCandidateController.close();
     _webrtcCallEndedController.close();
+    _roomErrorController.close();
   }
 }

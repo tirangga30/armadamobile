@@ -802,17 +802,6 @@ class DriverHomeView extends StatelessWidget {
         width: double.infinity,
         height: 48,
         child: ElevatedButton.icon(
-          onPressed: () => tracking.updateDeliveryState(item.id, 'ARRIVED'),
-          icon: const Icon(Icons.where_to_vote_rounded, size: 20),
-          label: const Text('Tiba di Lokasi Tujuan (Arrived)'),
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-        ),
-      );
-    } else if (item.status == 'ARRIVED' && item.stops.isEmpty) {
-      return SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: ElevatedButton.icon(
           onPressed: () => tracking.updateDeliveryState(item.id, 'DELIVERED'),
           icon: const Icon(Icons.task_alt_rounded, size: 20),
           label: const Text('Serah Terima & Selesai (POD)'),

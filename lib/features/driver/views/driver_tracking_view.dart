@@ -21,17 +21,51 @@ class DriverTrackingView extends StatefulWidget {
 class _DriverTrackingViewState extends State<DriverTrackingView> {
   List<LatLng>? _roadPolylinePoints;
   String? _loadedDeliveryId;
+  DriverTrackingProvider? _trackingProvider;
 
   @override
   void initState() {
     super.initState();
+    _trackingProvider = context.read<DriverTrackingProvider>();
+    _trackingProvider?.addListener(_onTrackingChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final user = context.read<AuthProvider>().user;
       final tracking = context.read<DriverTrackingProvider>();
       if (tracking.assignedDeliveries.isEmpty) {
         tracking.loadDriverDeliveries(driverId: user?.effectiveDriverId);
+      } else {
+        final activeId = _resolveActiveDeliveryId(tracking);
+        if (activeId != null) {
+          _fetchRoadPolyline(activeId);
+        }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _trackingProvider?.removeListener(_onTrackingChanged);
+    super.dispose();
+  }
+
+  String? _resolveActiveDeliveryId(DriverTrackingProvider tracking) {
+    if (tracking.assignedDeliveries.isEmpty) return null;
+    final active = tracking.assignedDeliveries.firstWhere(
+      (d) => d.status == 'EN_ROUTE' || d.status == 'ACCEPTED' || d.status == 'ASSIGNED',
+      orElse: () => tracking.assignedDeliveries.first,
+    );
+    return active.id;
+  }
+
+  void _onTrackingChanged() {
+    if (!mounted) return;
+    final tracking = context.read<DriverTrackingProvider>();
+    final activeId = _resolveActiveDeliveryId(tracking);
+    if (activeId != null && activeId != _loadedDeliveryId) {
+      _fetchRoadPolyline(activeId);
+    }
   }
 
   Future<void> _fetchRoadPolyline(String deliveryId) async {
@@ -45,7 +79,8 @@ class _DriverTrackingViewState extends State<DriverTrackingView> {
     }
     try {
       final routeGeo = await api.getCurrentDeliveryRoute(deliveryId);
-      if (routeGeo != null && routeGeo.polylinePoints.isNotEmpty && mounted) {
+      if (!mounted) return;
+      if (routeGeo != null && routeGeo.polylinePoints.isNotEmpty) {
         setState(() {
           _roadPolylinePoints = routeGeo.polylinePoints;
         });
@@ -104,8 +139,6 @@ class _DriverTrackingViewState extends State<DriverTrackingView> {
         (d) => d.status == 'EN_ROUTE' || d.status == 'ACCEPTED' || d.status == 'ASSIGNED',
         orElse: () => tracking.assignedDeliveries.first,
       );
-
-      _fetchRoadPolyline(activeDelivery.id);
 
       if (activeDelivery.stops.isNotEmpty) {
         for (final s in activeDelivery.stops) {

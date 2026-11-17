@@ -288,11 +288,24 @@ class ArmadaApiService {
     return list;
   }
 
-  Future<void> updateDeliveryStatus(String id, String status) async {
+  Future<bool> updateDeliveryStatus(String id, String status) async {
+    final action = switch (status) {
+      'ACCEPTED' => 'accept',
+      'EN_ROUTE' => 'start',
+      'DELIVERED' || 'COMPLETED' => 'complete',
+      'CANCELLED' => 'cancel',
+      _ => null,
+    };
+    if (action == null) {
+      debugPrint('updateDeliveryStatus: unsupported status "$status" for delivery $id');
+      return false;
+    }
     try {
-      await _client.post('deliveries/$id/$status');
+      await _client.post('deliveries/$id/$action');
+      return true;
     } catch (e) {
-      debugPrint('Notice updating delivery status: $e');
+      debugPrint('updateDeliveryStatus failed ($status → $action): $e');
+      return false;
     }
   }
 

@@ -175,9 +175,18 @@ class DriverTrackingProvider extends ChangeNotifier {
   Future<void> updateDeliveryState(String deliveryId, String newStatus) async {
     final idx = _assignedDeliveries.indexWhere((d) => d.id == deliveryId);
     if (idx != -1) {
+      final prevStatus = _assignedDeliveries[idx].status;
       _assignedDeliveries[idx] = _assignedDeliveries[idx].copyWith(status: newStatus);
       notifyListeners();
-      await _apiService.updateDeliveryStatus(deliveryId, newStatus);
+      final success = await _apiService.updateDeliveryStatus(deliveryId, newStatus);
+      if (!success) {
+        final currentIdx = _assignedDeliveries.indexWhere((d) => d.id == deliveryId);
+        if (currentIdx != -1) {
+          _assignedDeliveries[currentIdx] = _assignedDeliveries[currentIdx].copyWith(status: prevStatus);
+        }
+        _lastError = 'Gagal memperbarui status tugas. Coba lagi.';
+        notifyListeners();
+      }
     }
   }
 

@@ -1,0 +1,146 @@
+TASK: Fix three Flutter bugs in the Armada driver app. Backend room authorization was
+already fixed separately — do not modify the backend repo.
+
+PROJECT: /home/priz/Documents/armadamobile (Flutter, Dart)
+
+Read this whole file before editing. Make the smallest change that fixes each bug.
+
+===============================================================================
+BUG 2 — "Terima Tugas" reverts after refresh (root cause: wrong HTTP endpoint)
+===============================================================================
+
+FILE: lib/data/repositories/armada_api_service.dart (around line 291)
+
+CURRENT (broken):
+```dart
+Future<void> updateDeliveryStatus(String id, String status) async {
+  try {
+    await _client.post('deliveries/$id/$status');
+  } catch (e) {
+    debugPrint('Notice updating delivery status: $e');
+  }
+}
+```
+It posts `deliveries/<id>/ACCEPTED`, but the backend only exposes:
+`POST /deliveries/:id/accept`, `/start`, `/complete`, `/cancel`.
+The request 404s, the exception is swallowed, local state changes optimistically, then the
+next refresh restores the server value.
+
+REQUIRED:
+1. Replace the method body with an explicit status → action mapping and return `Future<bool>`
+   (true = server accepted the transition):
+
+```dart
+Future<bool> updateDeliveryStatus(String id, String status) async {
+  final action = switch (status) {
+    'ACCEPTED' => 'accept',
+    'EN_ROUTE' => 'start',
+    'DELIVERED' || 'COMPLETED' => 'complete',
+    'CANCELLED' => 'cancel',
+    _ => null,
+  };
+  if (action == null) {
+    debugPrint('updateDeliveryStatus: unsupported status "$status" for delivery $id');
+    return false;
+  }
+  try {
+    await _client.post('deliveries/$id/$action');
+    return true;
+  } catch (e) {
+    debugPrint('updateDeliveryStatus failed ($status → $action): $e');
+    return false;
+  }
+}
+```
+
+2. Check every other call site of `updateDeliveryStatus` in the project with grep and make
+   them still compile (a `Future<bool>` can be awaited and ignored, so most call sites are
+   fine — only fix real compile errors).
+
+FILE: lib/providers/driver_tracking_provider.dart (around line 175)
+
+CURRENT:
+```dart
+Future<void> updateDeliveryState(String deliveryId, String newStatus) async {
+  final idx = _assignedDeliveries.indexWhere((d) => d.id == deliveryId);
+  if (idx != -1) {
+    _assignedDeliveries[idx] = _assignedDeliveries[idx].copyWith(status: newStatus);
+    notifyListeners();
+    await _apiService.updateDeliveryStatus(deliveryId, newStatus);
+  }
+}
+```
+This keeps the optimistic state even when the server rejects the transition.
+
+REQUIRED:
+- Keep the optimistic update (snappy UI), but if `updateDeliveryStatus` returns `false`,
+  restore the previous status, call `notifyListeners()`, and set `_lastError` to a short
+  Indonesian message, e.g. `'Gagal memperbarui status tugas. Coba lagi.'`.
+- `_lastError` already exists on this class — reuse it, do not add a new field.
+
+FILE: lib/features/driver/views/driver_home_view.dart (`_buildActionButton`, ~line 776)
+
+The backend `DeliveryStatus` enum only has: DRAFT, ASSIGNED, ACCEPTED, EN_ROUTE, COMPLETED,
+CANCELLED, FAILED. There is no ARRIVED or DELIVERED state, which is why the current
+`ARRIVED` branch can never survive a refresh.
+
+REQUIRED:
+- Delete the `item.status == 'ARRIVED'` branch entirely.
+- Change the `item.status == 'EN_ROUTE' && item.stops.isEmpty` branch so its button label is
+  `'Serah Terima & Selesai (POD)'` and it calls
+  `tracking.updateDeliveryState(item.id, 'DELIVERED')`.
+- Leave the `DELIVERED`/`COMPLETED` "completed" branch as the terminal display.
+
+===============================================================================
+BUG 3 — Map refetches the route on every rebuild
+===============================================================================
+
+FILE: lib/features/driver/views/driver_tracking_view.dart
+
+CURRENT: `build()` calls `_fetchRoadPolyline(activeDelivery.id)` at ~line 108. That is I/O
+inside the render path. The guard keys on `_loadedDeliveryId` + `_roadPolylinePoints`, so a
+status flip caused by BUG 2 makes it refetch and redraw repeatedly.
+
+REQUIRED:
+1. Remove the `_fetchRoadPolyline(...)` call from `build()`.
+2. Trigger the fetch from `initState` (post-frame) and from a provider listener:
+   - In `initState`, after the first frame, read `DriverTrackingProvider` and if
+     `assignedDeliveries` is not empty, resolve the active delivery and call
+     `_fetchRoadPolyline(id)`.
+   - Register `context.read<DriverTrackingProvider>().addListener(_onTrackingChanged)` in
+     `initState`, remove it in `dispose`, and inside `_onTrackingChanged` recompute the active
+     delivery id and call `_fetchRoadPolyline(id)` only when the id differs from
+     `_loadedDeliveryId`.
+   - Resolve "active delivery" with the same rule the build method currently uses:
+     first item whose status is `EN_ROUTE`, `ACCEPTED` or `ASSIGNED`, else the first item.
+3. Keep the existing guard inside `_fetchRoadPolyline`; add `if (!mounted) return;` after the
+   await before `setState`.
+
+===============================================================================
+BUG 1 (client half) — surface WebSocket room join failures
+===============================================================================
+
+FILE: lib/core/services/socket_realtime_service.dart
+
+The backend rejects unauthorized room joins with a `room_error` event, but the client has no
+listener, so failures are invisible.
+
+REQUIRED:
+1. Add a broadcast stream controller `_roomErrorController` and expose
+   `Stream<Map<String, dynamic>> get roomErrorStream => _roomErrorController.stream;`
+2. Register `_socket!.on('room_error', (data) { ... })` together with the other `on(...)`
+   handlers, forwarding the payload (cast to `Map<String, dynamic>`) into the controller and
+   `debugPrint`-ing `room` + `message`.
+3. Close the controller in `dispose()` alongside the existing controllers.
+
+===============================================================================
+VERIFICATION (must all pass before you finish)
+===============================================================================
+1. `flutter analyze` → 0 issues.
+2. `flutter test` → all tests pass. If an existing test asserts the old
+   `Future<void> updateDeliveryStatus` signature or the removed ARRIVED button, update the
+   test to the new behaviour — but never delete a test.
+3. `grep -rn "updateDeliveryStatus" lib test` and confirm every call site compiles.
+
+Report: files changed, `flutter analyze` result, `flutter test` summary, and a one-line
+explanation per bug of what changed.
