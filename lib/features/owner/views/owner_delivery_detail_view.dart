@@ -132,9 +132,15 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
       }
     } catch (e) {
       if (context.mounted) {
+        final raw = e.toString();
+        final message = raw.contains('RATE_LIMIT_EXCEEDED')
+            ? 'Terlalu banyak percobaan panggilan. Tunggu 1 menit, lalu coba lagi.'
+            : (raw.contains('DRIVER_BUSY') || raw.contains('CALL_IN_PROGRESS'))
+                ? 'Driver masih dalam panggilan lain. Coba lagi sebentar.'
+                : 'Gagal memulai panggilan: $raw';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal memulai panggilan: $e'),
+            content: Text(message),
             backgroundColor: AppTheme.statusDanger,
           ),
         );
