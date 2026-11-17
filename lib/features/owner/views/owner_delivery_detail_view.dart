@@ -471,10 +471,11 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
                             }
                           },
                           icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-                          label: const Text('Chat E2EE'),
+                          label: const Text('Chat'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppTheme.primaryBlue,
                             side: const BorderSide(color: AppTheme.primaryBlue),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
@@ -484,29 +485,30 @@ class _OwnerDeliveryDetailViewState extends State<OwnerDeliveryDetailView> {
                         child: ElevatedButton.icon(
                           onPressed: () => _initiateCallSession(context, item, 'VOICE_PTT'),
                           icon: const Icon(Icons.radio_rounded, size: 16),
-                          label: const Text('PTT Voice'),
+                          label: const Text('PTT'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.statusSuccess,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _initiateCallSession(context, item, 'VIDEO'),
+                          icon: const Icon(Icons.videocam_rounded, size: 16),
+                          label: const Text('Video'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _initiateCallSession(context, item, 'VIDEO'),
-                      icon: const Icon(Icons.videocam_rounded, size: 16),
-                      label: const Text('Video Call Pengiriman'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primaryBlue,
-                        side: const BorderSide(color: AppTheme.primaryBlue),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
                   ),
                 ] else ...[
                   Row(

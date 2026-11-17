@@ -16,6 +16,15 @@ class WebRtcService {
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   bool _renderersInitialized = false;
 
+  /// ICE candidates that arrived before the remote description was applied.
+  /// Candidates are trickled by the peer as soon as it gathers them, which is
+  /// usually before our SDP answer/remote-offer is set; addCandidate() throws
+  /// in that window and the candidate would be lost for good.
+  final List<RTCIceCandidate> _pendingRemoteCandidates = <RTCIceCandidate>[];
+  bool _remoteDescriptionSet = false;
+  RTCIceGatheringState? _gatheringState;
+  Completer<void>? _gatheringCompleter;
+
   void Function(RTCIceCandidate candidate)? onIceCandidate;
   void Function(MediaStream stream)? onAddRemoteStream;
   void Function(RTCPeerConnectionState state)? onConnectionState;
@@ -110,6 +119,15 @@ class WebRtcService {
       onConnectionState?.call(state);
     };
 
+    _peerConnection!.onIceGatheringState = (RTCIceGatheringState state) {
+      _gatheringState = state;
+      if (state == RTCIceGatheringState.RTCIceGatheringStateComplete &&
+          _gatheringCompleter != null &&
+          !_gatheringCompleter!.isCompleted) {
+        _gatheringCompleter!.complete();
+      }
+    };
+
     final mediaConstraints = <String, dynamic>{
       'audio': true,
       'video': isVideo
@@ -142,8 +160,24 @@ class WebRtcService {
     }
   }
 
+  /// Wait until ICE gathering finishes so the SDP already carries every
+  /// candidate. Trickling alone is unreliable here because the peer's room
+  /// listeners may still be registering when the first candidates fly out.
+  Future<String> waitForIceGathering({Duration timeout = const Duration(seconds: 4)}) async {
+    final pc = _peerConnection;
+    if (pc == null) return '';
+    if (_gatheringState != RTCIceGatheringState.RTCIceGatheringStateComplete) {
+      _gatheringCompleter ??= Completer<void>();
+      if (!_gatheringCompleter!.isCompleted) {
+        await _gatheringCompleter!.future.timeout(timeout, onTimeout: () {});
+      }
+    }
+    final local = await pc.getLocalDescription();
+    return local?.sdp ?? '';
+  }
+
   /// Create WebRTC SDP Offer
-  Future<String> createOffer() async {
+  Future<String> createOffer({bool waitForCandidates = false}) async {
     if (_peerConnection == null) {
       throw StateError('PeerConnection not initialized. Call initCall first.');
     }
@@ -158,17 +192,24 @@ class WebRtcService {
 
     final description = await _peerConnection!.createOffer(offerConstraints);
     await _peerConnection!.setLocalDescription(description);
+
+    if (waitForCandidates) {
+      final gathered = await waitForIceGathering();
+      if (gathered.isNotEmpty) return gathered;
+    }
     return description.sdp ?? '';
   }
 
   /// Create WebRTC SDP Answer in response to remote offer
-  Future<String> createAnswer(String remoteSdp) async {
+  Future<String> createAnswer(String remoteSdp, {bool waitForCandidates = false}) async {
     if (_peerConnection == null) {
       throw StateError('PeerConnection not initialized. Call initCall first.');
     }
 
     final remoteDesc = RTCSessionDescription(remoteSdp, 'offer');
     await _peerConnection!.setRemoteDescription(remoteDesc);
+    _remoteDescriptionSet = true;
+    await _flushPendingRemoteCandidates();
 
     final answerConstraints = <String, dynamic>{
       'mandatory': {
@@ -180,6 +221,11 @@ class WebRtcService {
 
     final description = await _peerConnection!.createAnswer(answerConstraints);
     await _peerConnection!.setLocalDescription(description);
+
+    if (waitForCandidates) {
+      final gathered = await waitForIceGathering();
+      if (gathered.isNotEmpty) return gathered;
+    }
     return description.sdp ?? '';
   }
 
@@ -190,6 +236,8 @@ class WebRtcService {
     }
     final answerDesc = RTCSessionDescription(remoteSdp, 'answer');
     await _peerConnection!.setRemoteDescription(answerDesc);
+    _remoteDescriptionSet = true;
+    await _flushPendingRemoteCandidates();
   }
 
   /// Add received ICE candidate to peer connection
@@ -204,10 +252,31 @@ class WebRtcService {
           : 0,
     );
 
+    if (candidate.candidate == null || candidate.candidate!.isEmpty) return;
+
+    // The remote description must exist before a candidate can be attached.
+    if (!_remoteDescriptionSet) {
+      _pendingRemoteCandidates.add(candidate);
+      return;
+    }
+
     try {
       await _peerConnection!.addCandidate(candidate);
     } catch (e) {
       debugPrint('Error adding ICE candidate: $e');
+    }
+  }
+
+  Future<void> _flushPendingRemoteCandidates() async {
+    if (_pendingRemoteCandidates.isEmpty) return;
+    final queued = List<RTCIceCandidate>.from(_pendingRemoteCandidates);
+    _pendingRemoteCandidates.clear();
+    for (final candidate in queued) {
+      try {
+        await _peerConnection?.addCandidate(candidate);
+      } catch (e) {
+        debugPrint('Error flushing pending ICE candidate: $e');
+      }
     }
   }
 
@@ -240,6 +309,11 @@ class WebRtcService {
         await _peerConnection!.dispose();
         _peerConnection = null;
       }
+
+      _pendingRemoteCandidates.clear();
+      _remoteDescriptionSet = false;
+      _gatheringState = null;
+      _gatheringCompleter = null;
     } catch (e) {
       debugPrint('Error during WebRtcService dispose: $e');
     }

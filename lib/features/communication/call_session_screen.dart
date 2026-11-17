@@ -46,6 +46,11 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
   bool _isEnding = false;
   bool _hasRemoteVideo = false;
   bool _offerSent = false;
+  bool _answerReceived = false;
+  int _offerRetries = 0;
+  Timer? _offerRetryTimer;
+  String? _lastOfferSdp;
+  final Completer<void> _mediaReady = Completer<void>();
   String _statusText = 'Menghubungkan...';
 
   StreamSubscription? _respondSub;
@@ -102,12 +107,26 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
   }
 
   Future<void> _setupCallSession() async {
+    // Register the signaling listeners *before* touching media. Opening the
+    // camera/microphone takes several seconds; the caller starts firing offers
+    // the moment the session turns ACTIVE, and anything that arrives before
+    // these listeners exist is lost forever.
+    _bindSignalingStreams();
+    _socketService?.joinRoom('session:${widget.session.sessionId}');
+
+    // If caller and session already active, initiate offer immediately once
+    // media is ready (handled at the end of _prepareMedia).
+    await _prepareMedia();
+  }
+
+  Future<void> _prepareMedia() async {
     final isVideo = widget.session.type == 'VIDEO';
     final granted = await WebRtcService.requestCallPermissions(isVideo: isVideo);
     if (!granted) {
       if (mounted) {
         setState(() => _statusText = 'Izin mikrofon/kamera ditolak');
       }
+      if (!_mediaReady.isCompleted) _mediaReady.complete();
       return;
     }
 
@@ -139,7 +158,6 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
         if (mounted) {
           setState(() {
             _hasRemoteVideo = true;
-            _statusText = 'Terhubung';
           });
         }
       };
@@ -147,22 +165,20 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
       _webRtcService.onConnectionState = (RTCPeerConnectionState state) {
         if (!mounted) return;
         if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+          _offerRetryTimer?.cancel();
           setState(() => _statusText = 'Terhubung');
         } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
           setState(() => _statusText = 'Koneksi WebRTC gagal');
         }
       };
 
-      _bindSignalingStreams();
+      if (!_mediaReady.isCompleted) _mediaReady.complete();
 
-      // Join session room
-      _socketService?.joinRoom('session:${widget.session.sessionId}');
-
-      // If caller and session already active, initiate offer immediately
       if (widget.isCaller && widget.session.status == 'ACTIVE' && !_offerSent) {
         await _sendOffer();
       }
     } catch (e) {
+      if (!_mediaReady.isCompleted) _mediaReady.complete();
       if (mounted) {
         setState(() => _statusText = 'Gagal menyiapkan panggilan: $e');
       }
@@ -197,10 +213,19 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
       if (widget.isCaller) return;
 
       final sdp = data['sdp']?.toString();
-      if (sdp != null && sdp.isNotEmpty) {
-        final answerSdp = await _webRtcService.createAnswer(sdp);
+      if (sdp == null || sdp.isEmpty) return;
+
+      if (mounted) setState(() => _statusText = 'Menyambungkan WebRTC...');
+      await _mediaReady.future.timeout(const Duration(seconds: 20), onTimeout: () {});
+      if (_isEnding) return;
+
+      try {
+        final answerSdp = await _webRtcService.createAnswer(sdp, waitForCandidates: true);
+        if (answerSdp.isEmpty) return;
         _socketService?.sendWebrtcAnswer(widget.session.sessionId, answerSdp);
-        if (mounted) setState(() => _statusText = 'Terhubung');
+        if (mounted) setState(() => _statusText = 'Menyambungkan WebRTC...');
+      } catch (e) {
+        debugPrint('createAnswer failed: $e');
       }
     });
 
@@ -210,9 +235,14 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
       if (!widget.isCaller) return;
 
       final sdp = data['sdp']?.toString();
-      if (sdp != null && sdp.isNotEmpty) {
+      if (sdp == null || sdp.isEmpty) return;
+
+      _answerReceived = true;
+      _offerRetryTimer?.cancel();
+      try {
         await _webRtcService.setRemoteAnswer(sdp);
-        if (mounted) setState(() => _statusText = 'Terhubung');
+      } catch (e) {
+        debugPrint('setRemoteAnswer failed: $e');
       }
     });
 
@@ -234,9 +264,37 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
   }
 
   Future<void> _sendOffer() async {
-    _offerSent = true;
-    final offerSdp = await _webRtcService.createOffer();
-    _socketService?.sendWebrtcOffer(widget.session.sessionId, offerSdp);
+    if (!widget.isCaller || _answerReceived || _isEnding) return;
+    try {
+      await _mediaReady.future.timeout(const Duration(seconds: 20), onTimeout: () {});
+      if (_answerReceived || _isEnding) return;
+      final offerSdp = await _webRtcService.createOffer(waitForCandidates: true);
+      if (offerSdp.isEmpty || _answerReceived || _isEnding) return;
+      _offerSent = true;
+      _lastOfferSdp = offerSdp;
+      _socketService?.sendWebrtcOffer(widget.session.sessionId, offerSdp);
+      _scheduleOfferRetries();
+    } catch (e) {
+      debugPrint('createOffer failed: $e');
+    }
+  }
+
+  /// The callee joins the session room a few seconds after the caller (it has
+  /// to open the call screen, get permissions and start the camera first), so
+  /// the first offer usually lands before anyone is listening. Re-send the same
+  /// SDP until an answer arrives instead of hanging on "Menyambungkan...".
+  void _scheduleOfferRetries() {
+    _offerRetryTimer?.cancel();
+    _offerRetryTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+      if (_answerReceived || _isEnding || !mounted || _offerRetries >= 8) {
+        timer.cancel();
+        return;
+      }
+      _offerRetries++;
+      final cached = _lastOfferSdp;
+      if (cached == null || cached.isEmpty) return;
+      _socketService?.sendWebrtcOffer(widget.session.sessionId, cached);
+    });
   }
 
   Future<void> _hangup() async {
@@ -261,6 +319,7 @@ class _CallSessionScreenState extends State<CallSessionScreen> {
 
   @override
   void dispose() {
+    _offerRetryTimer?.cancel();
     _respondSub?.cancel();
     _offerSub?.cancel();
     _answerSub?.cancel();
